@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Livii｜熊本の外構・リフォーム・住まいの相談窓口</title>
+<meta name="description" content="熊本・荒尾の住まいのコーディネーター Livii。外構・リフォーム・塗装から草刈り・家具・賃貸管理まで、窓口ひとつで相談無料。見積もりは2社以上で比較し、最安に挑戦します。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@700;900&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --orange:#E2732A;
+  --orange-deep:#C85C17;
+  --orange-soft:#FCEBDD;
+  --navy:#23213D;
+  --navy-2:#34315A;
+  --cream:#FBF6EF;
+  --paper:#FFFFFF;
+  --ink:#2A2935;
+  --muted:#6B6878;
+  --line:#E9E2D8;
+  --green:#06C755;
+  --radius:20px;
+  --shadow:0 18px 40px -18px rgba(35,33,61,.35);
+  --wrap:1120px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:"Zen Kaku Gothic New",system-ui,sans-serif;line-height:1.85;font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img,svg{display:block;max-width:100%}
+a{color:inherit}
+.wrap{width:min(var(--wrap),100% - 32px);margin-inline:auto}
+.round{font-family:"Zen Maru Gothic",sans-serif}
+.en{font-family:"Outfit",sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- header ---------- */
+.header{position:sticky;top:0;z-index:50;background:rgba(251,246,239,.9);backdrop-filter:blur(10px);border-bottom:1px solid transparent;transition:border-color .3s}
+.header.scrolled{border-color:var(--line)}
+.header .wrap{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:38px;height:38px}
+.logo-text{display:flex;flex-direction:column;line-height:1}
+.logo-text small{font-size:10px;color:var(--muted);letter-spacing:.08em;margin-bottom:4px}
+.logo-text b{font-family:"Outfit",sans-serif;font-weight:800;font-size:26px;color:var(--navy);letter-spacing:.02em}
+.logo-text b i{font-style:normal;color:var(--orange)}
+.nav{display:flex;gap:28px;font-size:14px;font-weight:500}
+.nav a{text-decoration:none;position:relative}
+.nav a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:2px;background:var(--orange);transform:scaleX(0);transition:transform .25s}
+.nav a:hover::after{transform:scaleX(1)}
+.head-tel{display:flex;align-items:center;gap:10px;text-decoration:none;background:var(--navy);color:#fff;padding:10px 18px;border-radius:999px;font-weight:700;font-size:15px;white-space:nowrap}
+.head-tel svg{width:18px;height:18px}
+@media (max-width:960px){.nav{display:none}}
+@media (max-width:560px){.head-tel span{display:none}.head-tel{padding:10px}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:48px 0 40px;overflow:hidden}
+.hero::before{content:"";position:absolute;right:-12vw;top:-10vw;width:62vw;height:62vw;max-width:820px;max-height:820px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#FFE3CC 0%,rgba(255,227,204,0) 70%);z-index:0}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;min-height:calc(80vh - 72px)}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);padding:6px 14px 6px 8px;border-radius:999px;font-size:13px;font-weight:700;color:var(--navy)}
+.eyebrow b{background:var(--orange);color:#fff;border-radius:999px;padding:2px 10px;font-size:12px}
+.hero h1{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;color:var(--navy);font-size:clamp(30px,4.3vw,54px);line-height:1.35;margin:22px 0 20px;letter-spacing:.01em}
+.hero h1 .ln{white-space:nowrap}
+.hero h1 .mark{position:relative;white-space:nowrap;color:var(--orange)}
+.hero h1 .mark::after{content:"";position:absolute;left:-2%;right:-2%;bottom:.06em;height:.28em;background:var(--orange-soft);z-index:-1;border-radius:4px}
+.hero .lead{font-size:clamp(15px,1.5vw,18px);color:var(--ink);max-width:34em;margin:0 0 28px}
+.hero .lead strong{background:linear-gradient(transparent 60%,#FFD9B8 60%);font-weight:700}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;font-weight:700;border-radius:999px;padding:16px 26px;font-size:16px;transition:transform .2s,box-shadow .2s;border:0;cursor:pointer}
+.btn svg{width:20px;height:20px}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary{background:var(--orange);color:#fff;box-shadow:0 12px 24px -10px rgba(226,115,42,.8)}
+.btn-line{background:var(--green);color:#fff;box-shadow:0 12px 24px -10px rgba(6,199,85,.6)}
+.btn-ghost{background:var(--paper);color:var(--navy);border:1.5px solid var(--navy)}
+.hero-note{margin-top:14px;font-size:13px;color:var(--muted)}
+.ribbons{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.ribbon{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:15px;padding:6px 14px;border-radius:6px}
+.ribbon.a{background:var(--paper);color:var(--orange);border:2px solid var(--orange)}
+.ribbon.b{background:var(--orange);color:#fff}
+
+/* hero visual: house + connected services */
+.visual{position:relative;aspect-ratio:1/1;width:100%;max-width:520px;justify-self:center}
+.visual svg.map{width:100%;height:100%;overflow:visible}
+.node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--navy);animation:float 6s ease-in-out infinite}
+.node .dot{width:64px;height:64px;border-radius:50%;background:var(--paper);display:grid;place-items:center;box-shadow:var(--shadow);border:2px solid var(--orange-soft)}
+.node .dot svg{width:30px;height:30px;color:var(--orange)}
+.node:nth-child(2n){animation-delay:-2s}
+.node:nth-child(3n){animation-delay:-4s}
+@keyframes float{50%{transform:translate(-50%,calc(-50% - 8px))}}
+.house-label{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%);text-align:center;color:#fff;font-family:"Zen Maru Gothic",sans-serif;font-weight:900;line-height:1.35;font-size:clamp(18px,2.2vw,26px);pointer-events:none}
+.house-label small{display:block;font-family:"Outfit",sans-serif;font-size:11px;letter-spacing:.2em;opacity:.8;font-weight:600}
+@media (max-width:900px){
+  .hero{padding-top:28px}
+  .hero .wrap{grid-template-columns:1fr;min-height:auto;gap:12px}
+  .visual{max-width:330px;order:-1;margin-top:-8px}
+  .hero .cta-row .btn{flex:1;padding:15px 12px}
+  .node .dot{width:52px;height:52px}
+  .node .dot svg{width:24px;height:24px}
+  .node{font-size:11px}
+}
+
+/* ---------- promise band (the 1.5-scroll message) ---------- */
+.promise{background:var(--navy);color:#fff;position:relative;padding:60px 0 72px;overflow:hidden}
+.promise::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.03) 0 2px,transparent 2px 22px);pointer-events:none}
+.promise .wrap{position:relative;z-index:1}
+.promise .kicker{color:#FFB37E;font-size:13px}
+.promise h2{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:clamp(28px,4.2vw,48px);line-height:1.35;margin:10px 0 14px}
+.promise h2 em{font-style:normal;color:#FFB37E}
+.promise .sub{color:#D6D4E6;max-width:40em;margin:0 0 40px}
+.promises{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pcard{background:var(--navy-2);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);padding:26px 22px 24px;position:relative}
+.pcard .no{font-family:"Outfit",sans-serif;font-weight:800;color:var(--orange);font-size:13px;letter-spacing:.14em}
+.pcard .big{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:clamp(24px,2.6vw,32px);line-height:1.25;margin:10px 0 10px}
+.pcard .big span{color:#FFB37E}
+.pcard p{margin:0;font-size:14px;color:#D6D4E6;line-height:1.75}
+.pcard small{display:block;margin-top:8px;font-size:11px;color:#A9A6C2}
+@media (max-width:960px){.promises{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.promises{grid-template-columns:1fr}.promise{padding:56px 0 60px}}
+
+/* ---------- generic section ---------- */
+section.block{padding:96px 0}
+.head{text-align:center;margin-bottom:48px}
+.head .en{color:var(--orange);font-size:13px;font-weight:600}
+.head h2{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;color:var(--navy);font-size:clamp(26px,3.4vw,38px);line-height:1.4;margin:6px 0 10px}
+.head p{color:var(--muted);margin:0 auto;max-width:40em}
+@media (max-width:600px){section.block{padding:72px 0}}
+
+/* worries */
+.worries{display:flex;flex-wrap:wrap;justify-content:center;gap:14px 16px;max-width:900px;margin:0 auto}
+.bubble{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:14px 24px;font-weight:700;color:var(--navy);position:relative;box-shadow:0 6px 18px -12px rgba(35,33,61,.35)}
+.bubble::before{content:"";position:absolute;left:28px;bottom:-9px;width:16px;height:16px;background:var(--paper);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
+.arrow-down{width:2px;height:56px;background:linear-gradient(var(--orange),transparent);margin:40px auto 24px}
+.answer{text-align:center;font-family:"Zen Maru Gothic",sans-serif;font-weight:900;color:var(--navy);font-size:clamp(24px,3.4vw,40px);line-height:1.4}
+.answer span{color:var(--orange)}
+
+/* services */
+.services{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.svc{background:var(--paper);border-radius:var(--radius);padding:28px 26px 26px;border:1px solid var(--line);display:flex;flex-direction:column;transition:transform .25s,box-shadow .25s}
+.svc:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.svc .ic{width:56px;height:56px;border-radius:16px;background:var(--orange-soft);display:grid;place-items:center;margin-bottom:16px}
+.svc .ic svg{width:28px;height:28px;color:var(--orange-deep)}
+.svc h3{margin:0 0 8px;font-size:19px;color:var(--navy);font-family:"Zen Maru Gothic",sans-serif;font-weight:900}
+.svc p{margin:0 0 14px;font-size:14px;color:var(--muted);line-height:1.8;flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-size:12px;background:var(--cream);border-radius:6px;padding:2px 8px;color:var(--navy)}
+.svc.feature{background:var(--orange);border-color:var(--orange);color:#fff}
+.svc.feature .ic{background:rgba(255,255,255,.2)}
+.svc.feature .ic svg{color:#fff}
+.svc.feature h3,.svc.feature p{color:#fff}
+.svc.feature .tags span{background:rgba(255,255,255,.2);color:#fff}
+.svc .soon{display:inline-block;font-size:11px;background:var(--navy);color:#fff;border-radius:4px;padding:0 6px;margin-left:6px;vertical-align:middle}
+@media (max-width:900px){.services{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.services{grid-template-columns:1fr}}
+
+/* philosophy */
+.philo{background:var(--paper)}
+.philo .grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
+.philo-visual{background:var(--navy);border-radius:28px;aspect-ratio:4/3.4;position:relative;overflow:hidden;display:grid;place-items:center;color:#fff}
+.philo-visual .word{font-family:"Outfit",sans-serif;font-weight:800;font-size:clamp(48px,7vw,84px);letter-spacing:.02em;line-height:1}
+.philo-visual .word i{font-style:normal;color:var(--orange)}
+.philo-visual .eq{display:flex;align-items:center;gap:14px;margin-top:18px;font-size:14px;color:#D6D4E6;justify-content:center;flex-wrap:wrap}
+.philo-visual .eq b{color:#fff;font-family:"Outfit",sans-serif;font-size:18px}
+.philo-visual .eq .plus{color:var(--orange);font-size:22px;font-weight:800}
+.philo-visual .ring{position:absolute;border:1.5px dashed rgba(255,255,255,.15);border-radius:50%}
+.philo h2{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;color:var(--navy);font-size:clamp(28px,3.6vw,40px);line-height:1.4;margin:6px 0 20px}
+.philo p{margin:0 0 16px}
+.philo .note{font-size:12px;color:var(--muted)}
+@media (max-width:860px){.philo .grid{grid-template-columns:1fr;gap:32px}}
+
+/* flow */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;counter-reset:step}
+.step{background:var(--paper);border-radius:var(--radius);padding:24px 18px;text-align:center;position:relative;border:1px solid var(--line)}
+.step::before{counter-increment:step;content:"STEP " counter(step);display:block;font-family:"Outfit",sans-serif;font-weight:800;font-size:12px;letter-spacing:.16em;color:var(--orange);margin-bottom:8px}
+.step h3{margin:0 0 6px;font-size:16px;color:var(--navy)}
+.step p{margin:0;font-size:13px;color:var(--muted);line-height:1.7}
+.step:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:10px;height:10px;border-top:2px solid var(--orange);border-right:2px solid var(--orange);transform:translateY(-50%) rotate(45deg);z-index:1}
+@media (max-width:900px){.flow{grid-template-columns:1fr}.step:not(:last-child)::after{right:50%;top:auto;bottom:-12px;transform:translateX(50%) rotate(135deg)}}
+
+/* voices */
+.voices{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.voice{background:var(--paper);border-radius:var(--radius);padding:28px 26px;border:1px solid var(--line);display:flex;flex-direction:column}
+.voice .stars{color:#F2A33A;letter-spacing:2px;font-size:16px}
+.voice .tag{display:inline-block;font-size:12px;font-weight:700;background:var(--orange-soft);color:var(--orange-deep);border-radius:6px;padding:2px 10px;margin:8px 0 12px;align-self:flex-start}
+.voice blockquote{margin:0 0 16px;font-size:14px;line-height:1.9;flex:1}
+.voice blockquote strong{background:linear-gradient(transparent 62%,#FFE0C4 62%)}
+.voice cite{font-style:normal;font-size:13px;color:var(--muted)}
+@media (max-width:900px){.voices{grid-template-columns:1fr}}
+
+/* faq */
+.faq{max-width:820px;margin:0 auto;display:grid;gap:12px}
+.faq details{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;padding:20px 56px 20px 22px;font-weight:700;color:var(--navy);position:relative}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"Q";font-family:"Outfit",sans-serif;font-weight:800;color:var(--orange);margin-right:12px}
+.faq summary::after{content:"";position:absolute;right:24px;top:50%;width:10px;height:10px;border-right:2px solid var(--navy);border-bottom:2px solid var(--navy);transform:translateY(-70%) rotate(45deg);transition:transform .25s}
+.faq details[open] summary::after{transform:translateY(-30%) rotate(225deg)}
+.faq .a{padding:0 22px 20px 50px;color:var(--ink);font-size:15px}
+
+/* profile */
+.profile{display:grid;grid-template-columns:auto 1fr;gap:40px;align-items:center;background:var(--paper);border-radius:28px;padding:40px;border:1px solid var(--line);max-width:900px;margin:0 auto}
+.avatar{width:168px;height:168px;border-radius:50%;background:var(--orange-soft);display:grid;place-items:center;font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:56px;color:var(--orange-deep);border:6px solid #fff;box-shadow:var(--shadow)}
+.profile .role{font-size:13px;color:var(--orange-deep);font-weight:700}
+.profile h3{margin:4px 0 2px;font-size:26px;color:var(--navy);font-family:"Zen Maru Gothic",sans-serif;font-weight:900}
+.profile .roman{font-family:"Outfit",sans-serif;font-size:12px;letter-spacing:.18em;color:var(--muted)}
+.profile ul{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}
+.profile li{display:flex;gap:10px}
+.profile li b{flex:0 0 3.5em;color:var(--navy)}
+@media (max-width:700px){.profile{grid-template-columns:1fr;text-align:center;padding:32px 22px}.avatar{margin:0 auto}.profile li{text-align:left}}
+
+/* contact */
+.contact{background:linear-gradient(135deg,var(--orange) 0%,#EE8A3E 100%);color:#fff;border-radius:32px;padding:56px 40px;text-align:center;position:relative;overflow:hidden}
+.contact::before,.contact::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.1)}
+.contact::before{width:340px;height:340px;left:-120px;top:-160px}
+.contact::after{width:260px;height:260px;right:-80px;bottom:-140px}
+.contact > *{position:relative;z-index:1}
+.contact h2{font-family:"Zen Maru Gothic",sans-serif;font-weight:900;font-size:clamp(26px,3.6vw,40px);margin:4px 0 8px;line-height:1.4}
+.contact p{margin:0 0 28px;opacity:.95}
+.contact .tel{display:inline-flex;align-items:center;gap:12px;font-family:"Outfit",sans-serif;font-weight:800;font-size:clamp(30px,5vw,48px);text-decoration:none;letter-spacing:.02em}
+.contact .tel svg{width:36px;height:36px}
+.contact .hours{font-size:13px;opacity:.9;margin:4px 0 28px}
+.contact .cta-row{justify-content:center}
+.contact .btn-white{background:#fff;color:var(--orange-deep)}
+@media (max-width:560px){.contact{padding:44px 20px;border-radius:24px}}
+
+/* footer */
+footer{background:var(--navy);color:#D6D4E6;margin-top:96px;padding:56px 0 110px;font-size:14px}
+footer .grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:32px}
+footer .logo-text b{color:#fff}
+footer .logo-text small{color:#A9A6C2}
+footer h4{color:#fff;margin:0 0 12px;font-size:14px}
+footer ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+footer a{text-decoration:none}
+footer a:hover{color:#fff}
+footer address{font-style:normal;margin-top:16px;line-height:1.9}
+footer .copy{border-top:1px solid rgba(255,255,255,.1);margin-top:40px;padding-top:20px;font-size:12px;color:#A9A6C2}
+@media (max-width:760px){footer .grid{grid-template-columns:1fr}}
+
+/* mobile sticky CTA */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid var(--line);backdrop-filter:blur(8px)}
+.dock a{flex:1;padding:13px 8px;font-size:14px}
+@media (max-width:760px){.dock{display:flex}footer{padding-bottom:120px}}
+@media (min-width:761px){footer{padding-bottom:40px}}
+
+/* reveal */
+.js .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.js .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .js .reveal{opacity:1;transform:none;transition:none}
+  .node{animation:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- アイコン定義 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></symbol>
+    <symbol id="i-line" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5 1.1-.5 5.9-3.5 8-6C21.4 14.3 22 12.7 22 11c0-4.4-4.5-8-10-8Z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></g></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/></g></symbol>
+    <symbol id="i-reform" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M12 12.5v6M9 15.5h6"/></g></symbol>
+    <symbol id="i-fence" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V7l2-3 2 3v14M10 21V7l2-3 2 3v14M16 21V7l2-3 2 3v14M2 11h20M2 17h20"/></g></symbol>
+    <symbol id="i-helmet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M5 18v-2a7 7 0 0 1 14 0v2"/><path d="M10 9.5V7h4v2.5"/></g></symbol>
+    <symbol id="i-roller" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="6" rx="1.5"/><path d="M17 6h3v5h-8v3"/><rect x="10" y="14" width="4" height="7" rx="1"/></g></symbol>
+    <symbol id="i-sofa" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2z"/><path d="M5 18v2M19 18v2"/></g></symbol>
+    <symbol id="i-solar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="6" r="2.5"/><path d="M7 1.5v1M2.5 6h1M3.8 2.8l.7.7M10.2 2.8l-.7.7"/><path d="M10 12h11l-2 9H8z"/><path d="M14.8 12l-1.3 9M9 16.5h11"/></g></symbol>
+    <symbol id="i-grass" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M6 21c0-4-2-7-2-7M10 21c0-6 2-10 2-10M14 21c0-5-1-8-1-8M18 21c0-4 2-6 2-6"/></g></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2M11 21v-3h2v3"/></g></symbol>
+    <symbol id="i-insta" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></g></symbol>
+  </defs>
+</svg>
+
+<header class="header" id="top">
+  <div class="wrap">
+    <a href="#top" class="logo" aria-label="Livii トップへ">
+      <!-- TODO: 正式なロゴ画像に差し替え -->
+      <svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 36 15v20H4V15z" fill="none" stroke="#23213D" stroke-width="3.5" stroke-linejoin="round"/><rect x="12" y="19" width="4" height="12" fill="#23213D"/><rect x="12" y="27" width="9" height="4" fill="#23213D"/><circle cx="26" cy="17" r="2.6" fill="#E2732A"/><rect x="24" y="21.5" width="4" height="9.5" fill="#E2732A"/></svg>
+      <span class="logo-text"><small>生活をコーディネートする。</small><b>L<i>i</i>v<i>ii</i></b></span>
+    </a>
+    <nav class="nav" aria-label="メインメニュー">
+      <a href="#services">サービス</a>
+      <a href="#about">Liviiについて</a>
+      <a href="#flow">ご相談の流れ</a>
+      <a href="#voice">お客様の声</a>
+      <a href="#faq">よくある質問</a>
+    </nav>
+    <a class="head-tel" href="tel:07043860745"><svg><use href="#i-phone"/></svg><span>070-4386-0745</span></a>
+  </div>
+</header>
+
+<main>
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <div class="ribbons">
+          <span class="ribbon a">高い満足度</span>
+          <span class="ribbon b">最安に挑戦!!</span>
+        </div>
+        <h1><span class="ln">住まいの「困った」、</span><br><span class="ln">窓口は<span class="mark">ひとつ</span>でいい。</span></h1>
+        <p class="lead">外構・リフォーム・塗装から、草刈り・家具・賃貸管理まで。<br>熊本の住まいのことは、<strong>Liviiが相談無料</strong>でまとめて受けとめ、<strong>2社以上の見積もりを比べて</strong>、いちばん納得できる形をご提案します。</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="tel:07043860745"><svg><use href="#i-phone"/></svg>無料で相談する</a>
+          <!-- TODO: LINE公式アカウントのURLに差し替え -->
+          <a class="btn btn-line" href="#contact"><svg><use href="#i-line"/></svg>LINEで相談</a>
+        </div>
+        <p class="hero-note">しつこい営業はしません。見積もりだけ・相談だけでも大歓迎です。</p>
+      </div>
+
+      <div class="visual" aria-hidden="true">
+        <svg class="map" viewBox="0 0 500 500">
+          <g stroke="#E2732A" stroke-width="2" stroke-dasharray="4 8" fill="none" opacity=".55">
+            <path d="M250 280 L90 110"/><path d="M250 280 L250 40"/><path d="M250 280 L410 110"/>
+            <path d="M250 280 L460 290"/><path d="M250 280 L400 460"/><path d="M250 280 L100 460"/><path d="M250 280 L40 290"/>
+          </g>
+          <circle cx="250" cy="280" r="150" fill="#FFF" opacity=".7"/>
+          <path d="M250 150 L370 245 V380 H130 V245 Z" fill="#23213D"/>
+          <path d="M235 140 L250 128 L392 240 L378 256 L250 155 L122 256 L108 240 Z" fill="#E2732A"/>
+          <rect x="300" y="170" width="20" height="42" fill="#E2732A"/>
+        </svg>
+        <div class="house-label"><small>LIVING × i</small>生活と人を<br>繋げる</div>
+        <div class="node" style="left:18%;top:22%"><span class="dot"><svg><use href="#i-fence"/></svg></span>外構</div>
+        <div class="node" style="left:50%;top:8%"><span class="dot"><svg><use href="#i-reform"/></svg></span>リフォーム</div>
+        <div class="node" style="left:82%;top:22%"><span class="dot"><svg><use href="#i-roller"/></svg></span>塗装</div>
+        <div class="node" style="left:92%;top:58%"><span class="dot"><svg><use href="#i-solar"/></svg></span>太陽光</div>
+        <div class="node" style="left:80%;top:92%"><span class="dot"><svg><use href="#i-sofa"/></svg></span>家具</div>
+        <div class="node" style="left:20%;top:92%"><span class="dot"><svg><use href="#i-grass"/></svg></span>草刈り</div>
+        <div class="node" style="left:8%;top:58%"><span class="dot"><svg><use href="#i-building"/></svg></span>賃貸管理</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROMISE（スクロール1〜1.5画面目に入るメッセージ） ========== -->
+  <section class="promise" aria-labelledby="promise-title">
+    <div class="wrap">
+      <p class="kicker en">Livii's Promise</p>
+      <h2 id="promise-title">比べて、選べて、<br><em>まかせて安心。</em></h2>
+      <p class="sub">業者探し、相見積もり、価格交渉、工事の段取り。面倒なことはLiviiが引き受けます。お客様は「どうしたいか」を話すだけ。</p>
+      <div class="promises">
+        <div class="pcard reveal">
+          <div class="no">01</div>
+          <div class="big">ご相談は<br><span>無料</span></div>
+          <p>電話・メール・LINEで気軽に。「何から始めればいい？」からで大丈夫です。</p>
+        </div>
+        <div class="pcard reveal">
+          <div class="no">02</div>
+          <div class="big">見積もりは<br><span>2社以上</span></div>
+          <p>複数社の見積もりを並べて、内容と価格を比べてから選べます。</p>
+          <small>※草刈り・家具の新調・賃貸管理を除く</small>
+        </div>
+        <div class="pcard reveal">
+          <div class="no">03</div>
+          <div class="big"><span>最安</span>に<br>挑戦</div>
+          <p>格安で、かつ丁寧に。安さと品質のどちらもあきらめない提案をします。</p>
+        </div>
+        <div class="pcard reveal">
+          <div class="no">04</div>
+          <div class="big"><span>プラス1</span>の<br>サービス</div>
+          <p>ご依頼1つにつき、ちょっとうれしいサービスをひとつお付けします。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== WORRIES ========== -->
+  <section class="block" aria-labelledby="worry-title">
+    <div class="wrap">
+      <div class="head">
+        <p class="en">Your Worries</p>
+        <h2 id="worry-title">こんなお悩み、ありませんか？</h2>
+      </div>
+      <div class="worries reveal">
+        <span class="bubble">どのハウスメーカーを選べばいいかわからない</span>
+        <span class="bubble">外構にかける金額をできるだけ抑えたい</span>
+        <span class="bubble">アパートの管理が大変だ</span>
+        <span class="bubble">いい家具を安く手に入れたい</span>
+        <span class="bubble">草刈りしないといけないけど面倒…</span>
+        <span class="bubble">見積もりが適正かどうか不安</span>
+      </div>
+      <div class="arrow-down"></div>
+      <p class="answer reveal">そのお悩み、<span>Livii</span>にお任せください。</p>
+    </div>
+  </section>
+
+  <!-- ========== SERVICES ========== -->
+  <section class="block" id="services" style="padding-top:0" aria-labelledby="svc-title">
+    <div class="wrap">
+      <div class="head">
+        <p class="en">Services</p>
+        <h2 id="svc-title">熊本で対応している<br>住まいのサービス</h2>
+        <p>大きな工事から日常のちょっとした困りごとまで。ひとつの窓口で、まとめてご相談いただけます。</p>
+      </div>
+      <div class="services">
+        <article class="svc feature reveal">
+          <div class="ic"><svg><use href="#i-fence"/></svg></div>
+          <h3>外構工事</h3>
+          <p>熊本県内の新築外構から外構リフォームまで。ご予算とライフスタイルに合わせ、デザインだけでなく使いやすさも重視したプランをご提案します。小さな工事もお気軽に。</p>
+          <div class="tags"><span>カーポート</span><span>フェンス</span><span>ウッドデッキ</span><span>駐車場</span><span>アプローチ</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-reform"/></svg></div>
+          <h3>リフォーム工事</h3>
+          <p>実際に見て確認しないと正確な金額が出にくいのがリフォーム。予算を超えないよう、無駄なく満足できる施工内容をご提案します。</p>
+          <div class="tags"><span>水まわり</span><span>内装</span><span>店舗づくり</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-roller"/></svg></div>
+          <h3>塗装工事</h3>
+          <p>「そろそろ塗り替え時かな？」と思ったらご相談ください。外壁や屋根の状態を確認し、ご予算に合わせて大切な住まいを長く守ります。</p>
+          <div class="tags"><span>外壁</span><span>屋根</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-helmet"/></svg></div>
+          <h3>解体・造成工事</h3>
+          <p>見積もりにない工事を後から追加請求…という不安をなくすため、記載のない追加工事は行いません。安心してお任せください。</p>
+          <div class="tags"><span>解体</span><span>造成</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-sofa"/></svg></div>
+          <h3>家具の新調</h3>
+          <p>家具の名産地・大川家具の各社と特約店契約。通常売価より<b>40〜50%ほどお安く</b>ご購入いただけます。</p>
+          <div class="tags"><span>大川家具</span><span>特約店価格</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-solar"/></svg></div>
+          <h3>太陽光・蓄電池の相談</h3>
+          <p>電気代が上がった今、「家を建てたときに付けておけば…」という方へ。訪問販売ではない、最適な提案をいたします。</p>
+          <div class="tags"><span>太陽光パネル</span><span>蓄電池</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-grass"/></svg></div>
+          <h3>日常のお困りごと</h3>
+          <p>お庭の草刈りや不用品回収など、日常のちょっとした困りごとも。まずは一度ご相談ください。</p>
+          <div class="tags"><span>草刈り</span><span>不用品回収</span><span>ハウスクリーニング</span><span>引越し</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-building"/></svg></div>
+          <h3>賃貸の管理業務</h3>
+          <p>アパート等の定期清掃・環境整備を行い、入居者が気持ちよく暮らせる建物に。入居率アップを目指します。</p>
+          <div class="tags"><span>定期清掃</span><span>環境整備</span></div>
+        </article>
+        <article class="svc reveal">
+          <div class="ic"><svg><use href="#i-key"/></svg></div>
+          <h3>不動産紹介<span class="soon">準備中</span></h3>
+          <p>宅地建物取引士の代表が対応します。ハウスメーカー選びのご相談もどうぞ。新規コンテンツは公開まで今しばらくお待ちください。</p>
+          <div class="tags"><span>土地探し</span><span>住まい選び</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ABOUT / PHILOSOPHY ========== -->
+  <section class="block philo" id="about" aria-labelledby="about-title">
+    <div class="wrap grid">
+      <div class="philo-visual reveal" aria-hidden="true">
+        <span class="ring" style="width:120%;aspect-ratio:1;left:-10%;top:-30%"></span>
+        <span class="ring" style="width:80%;aspect-ratio:1;right:-30%;bottom:-40%"></span>
+        <div>
+          <div class="word">L<i>i</i>v<i>ii</i></div>
+          <div class="eq"><b>Living</b><span>生活</span><span class="plus">×</span><b>i</b><span>人</span></div>
+        </div>
+      </div>
+      <div class="reveal">
+        <p class="en" style="color:var(--orange);font-size:13px;font-weight:600;margin:0">Philosophy</p>
+        <h2 id="about-title">生活と人を繋げる。</h2>
+        <p>Liviiとは、Living（生活）と i（人）を繋げるという意味でつけた名前です。</p>
+        <p>長く暮らしていると、面倒なこと、やりたくないけどやらないといけないことがたくさんあります。そんなときのお役立ちとして使っていただけるよう、格安で、かつ丁寧な提案・施工をお約束します。</p>
+        <p>ご依頼いただいた仕事は2社以上のお見積もりを提示します。もちろん、お客様ご自身で見積もりを取っていただいても構いません。施工後は、<b>なんでも相談できる友人</b>として仲良くしていただけたら嬉しいです。</p>
+        <p class="note">※草刈り・家具の新調・賃貸の管理業務を除く</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FLOW ========== -->
+  <section class="block" id="flow" aria-labelledby="flow-title">
+    <div class="wrap">
+      <div class="head">
+        <p class="en">Flow</p>
+        <h2 id="flow-title">ご相談から施工までの流れ</h2>
+      </div>
+      <!-- TODO: 実際の「施工の流れ」ページの内容に合わせて調整 -->
+      <ol class="flow" style="list-style:none;padding:0;margin:0">
+        <li class="step reveal"><h3>無料相談</h3><p>電話・メール・LINEでお気軽にどうぞ。</p></li>
+        <li class="step reveal"><h3>現地確認</h3><p>お住まいを拝見し、ご要望とご予算を伺います。</p></li>
+        <li class="step reveal"><h3>相見積もり・ご提案</h3><p>2社以上の見積もりを比べ、最適なプランをご提案。</p></li>
+        <li class="step reveal"><h3>ご契約・施工</h3><p>見積もりにない追加工事は行いません。</p></li>
+        <li class="step reveal"><h3>アフターフォロー</h3><p>施工後も、住まいのことはなんでもご相談ください。</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ========== VOICES ========== -->
+  <section class="block" id="voice" style="padding-top:0" aria-labelledby="voice-title">
+    <div class="wrap">
+      <div class="head">
+        <p class="en">User Review</p>
+        <h2 id="voice-title">お客様の声</h2>
+        <p>Googleの口コミでいただいた声をご紹介します。</p>
+      </div>
+      <div class="voices">
+        <figure class="voice reveal" style="margin:0">
+          <div class="stars" aria-label="5点満点中5点">★★★★★</div>
+          <span class="tag">外構工事</span>
+          <blockquote>困っていることを相談したところ、すぐに電話対応してもらい、<strong>その日のうちに現場で見積もり</strong>、次の日には施工まで行っていただきました。紹介された外構業者さんもとても丁寧で、細かく確認しながら施工していただきました。今後も住宅のことで困ったときは原さんに相談しようと思います！</blockquote>
+          <cite>杉本 祐貴 様</cite>
+        </figure>
+        <figure class="voice reveal" style="margin:0">
+          <div class="stars" aria-label="5点満点中5点">★★★★★</div>
+          <span class="tag">店舗づくり</span>
+          <blockquote>お店作りをお願いしました。いろいろとすぐに対応してくださいます。こちらの要望などにも<strong>親身になって</strong>受けてくださいました。何かあれば相談できる強い存在がいるととても安心できます。無事オープンできました。</blockquote>
+          <cite>ヤドリギ 様</cite>
+        </figure>
+        <figure class="voice reveal" style="margin:0">
+          <div class="stars" aria-label="5点満点中5点">★★★★★</div>
+          <span class="tag">外壁・塗装</span>
+          <blockquote>実家の外壁工事・塗装を依頼しました。対応も迅速ですぐ見積もりしていただきました。職人さんも気さくな方で<strong>仕事は丁寧、大変満足</strong>です！翌日の作業内容も伝えてくださったので、車の出し入れも問題なくできました。</blockquote>
+          <cite>濱崎 かおり 様</cite>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FAQ ========== -->
+  <section class="block" id="faq" style="padding-top:0" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="head">
+        <p class="en">FAQ</p>
+        <h2 id="faq-title">よくあるご質問</h2>
+      </div>
+      <div class="faq">
+        <details class="reveal">
+          <summary>外構リフォームを検討しています。まず何から始めればいいですか？</summary>
+          <div class="a">まずは無料相談で、お困りごとやご予算、イメージを聞かせてください。「何をしたいかまだ決まっていない」段階でも大丈夫です。現地を確認したうえで、2社以上の見積もりを比べながら一緒に決めていきます。</div>
+        </details>
+        <details class="reveal">
+          <summary>小規模な庭や外構の工事でも対応していただけますか？</summary>
+          <div class="a">はい、対応しています。フェンス1枚、駐車場の一部など、小さな工事からお気軽にご相談ください。</div>
+        </details>
+        <details class="reveal">
+          <summary>熊本で外構リフォームを考えていますが、Liviiの特徴は何ですか？</summary>
+          <div class="a">相談無料、見積もりは2社以上で比較、最安に挑戦、そしてご依頼1つにつきプラス1のサービス。外構だけでなく、塗装・リフォーム・家具・草刈りまで、住まいのことをひとつの窓口でまとめて相談できるのが強みです。</div>
+        </details>
+        <details class="reveal">
+          <summary>自分で取った見積もりがあっても相談できますか？</summary>
+          <div class="a">もちろんです。お手元の見積もりと比べていただいて構いません。内容が適正かどうかのご相談もお受けします。</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROFILE ========== -->
+  <section class="block" style="padding-top:0" aria-labelledby="ceo-title">
+    <div class="wrap">
+      <div class="profile reveal">
+        <!-- TODO: 代表の似顔絵画像に差し替え -->
+        <div class="avatar" aria-hidden="true">原</div>
+        <div>
+          <div class="role">代表 ／ 宅地建物取引士</div>
+          <h3 id="ceo-title">原 大和</h3>
+          <div class="roman">HARA HIROKAZU</div>
+          <ul>
+            <li><b>出身</b><span>1987年11月 熊本県荒尾市生まれ</span></li>
+            <li><b>部活</b><span>小学1年生から高校3年生まで剣道部</span></li>
+            <li><b>経歴</b><span>ホテル業・地場大手不動産会社・地場大手住宅会社営業（新築注文）等</span></li>
+            <li><b>趣味</b><span>旅行（国内外問わず）、御朱印集め、食べ歩き</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CONTACT ========== -->
+  <section id="contact" aria-labelledby="contact-title">
+    <div class="wrap">
+      <div class="contact reveal">
+        <p class="en" style="margin:0;font-size:13px;opacity:.9">Contact</p>
+        <h2 id="contact-title">無料相談、承り中！</h2>
+        <p>お客様に合わせたご提案をいたします。相談だけ・見積もりだけでもお気軽に。</p>
+        <a class="tel" href="tel:07043860745"><svg><use href="#i-phone"/></svg>070-4386-0745</a>
+        <div class="hours">お電話でのお問い合わせはこちら</div>
+        <div class="cta-row">
+          <a class="btn btn-white" href="mailto:info@livii.jp"><svg><use href="#i-mail"/></svg>メールで問い合わせ</a>
+          <!-- TODO: LINE公式アカウントのURLに差し替え -->
+          <a class="btn btn-line" href="#contact"><svg><use href="#i-line"/></svg>LINEで問い合わせ</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <span class="logo-text"><small>生活をコーディネートする。</small><b>L<i>i</i>v<i>ii</i></b></span>
+        <address>
+          〒864-0031 熊本県荒尾市川登1916-5 101<br>
+          TEL <a href="tel:07043860745">070-4386-0745</a><br>
+          Mail <a href="mailto:info@livii.jp">info@livii.jp</a>
+        </address>
+      </div>
+      <div>
+        <h4>サービス</h4>
+        <ul>
+          <li><a href="#services">外構工事</a></li>
+          <li><a href="#services">リフォーム・塗装工事</a></li>
+          <li><a href="#services">解体・造成工事</a></li>
+          <li><a href="#services">家具の新調</a></li>
+          <li><a href="#services">太陽光・蓄電池</a></li>
+          <li><a href="#services">日常のお困りごと・賃貸管理</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Livii</h4>
+        <ul>
+          <li><a href="#about">Liviiについて</a></li>
+          <li><a href="#flow">ご相談の流れ</a></li>
+          <li><a href="#voice">お客様の声</a></li>
+          <li><a href="#faq">よくある質問</a></li>
+          <li><a href="#contact">お問い合わせ</a></li>
+          <!-- TODO: InstagramのURLに差し替え -->
+          <li><a href="#"><svg style="width:16px;height:16px;display:inline;vertical-align:-3px;margin-right:6px"><use href="#i-insta"/></svg>Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="copy">© Livii ｜ 熊本の外構工事・庭・フェンス・リフォーム</div>
+  </div>
+</footer>
+
+<div class="dock">
+  <a class="btn btn-primary" href="tel:07043860745"><svg><use href="#i-phone"/></svg>電話で相談</a>
+  <a class="btn btn-line" href="#contact"><svg><use href="#i-line"/></svg>LINEで相談</a>
+</div>
+
+<script>
+document.documentElement.classList.add('js');
+const header=document.querySelector('.header');
+addEventListener('scroll',()=>header.classList.toggle('scrolled',scrollY>8),{passive:true});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%4)*80+'ms';io.observe(el)});
+</script>
+</body>
+</html>
