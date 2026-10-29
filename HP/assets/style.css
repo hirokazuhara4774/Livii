@@ -420,3 +420,13 @@ p{margin:0}
 .mcard li{margin:4px 0}
 .sub-title{font-size:18px;margin:8px 0 14px}
 @media (max-width:760px){.manage-main{grid-template-columns:1fr}}
+
+/* 経営理念（Purpose / Mission / Vision / Value） */
+.mvv{max-width:960px;margin:0 auto;border-top:1px solid var(--line)}
+.mvv-row{display:grid;grid-template-columns:240px 1fr;gap:32px;align-items:center;padding:32px 8px;border-bottom:1px solid var(--line)}
+.mvv dt{display:flex;flex-direction:column;gap:2px}
+.mvv-en{font-family:"Outfit",sans-serif;font-weight:800;font-size:clamp(30px,3.6vw,42px);line-height:1.1;letter-spacing:.01em;color:var(--ink)}
+.mvv-en::first-letter{color:var(--sub)}
+.mvv-ja{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.1em}
+.mvv dd{margin:0;font-size:clamp(17px,1.9vw,21px);font-weight:700;line-height:1.8}
+@media (max-width:700px){.mvv-row{grid-template-columns:1fr;gap:10px;padding:26px 4px}}
