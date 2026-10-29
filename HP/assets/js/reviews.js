@@ -3,7 +3,9 @@
   var data = window.LIVII_REVIEWS || { reviews: [] };
   var box = document.querySelector("[data-reviews]");
   if (!box) return;
-  var list = data.reviews || [];
+  var all = data.reviews || [];
+  // 本文のない口コミ（星のみ）は件数と平均にだけ含め、カードには出さない
+  var list = all.filter(function (r) { return r.text; });
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -20,7 +22,7 @@
     return;
   }
 
-  var avg = list.reduce(function (s, r) { return s + (r.rating || 0); }, 0) / list.length;
+  var avg = all.reduce(function (s, r) { return s + (r.rating || 0); }, 0) / all.length;
   var maps = data.mapsUrl
     ? '<a class="rv-link" href="' + esc(data.mapsUrl) + '" target="_blank" rel="noopener">Googleマップで口コミを見る・書く</a>'
     : "";
@@ -37,7 +39,7 @@
 
   box.innerHTML =
     '<div class="rv-summary"><span class="rv-score">' + avg.toFixed(1) + '</span><span class="rv-stars big">' + stars(avg) +
-      '</span><span class="rv-count">Googleの口コミ ' + list.length + "件</span>" + maps + "</div>" +
+      '</span><span class="rv-count">Googleの口コミ ' + all.length + "件</span>" + maps + "</div>" +
     '<div class="rv-carousel" role="region" aria-roledescription="カルーセル" aria-label="お客様の口コミ">' +
       '<button class="rv-btn prev" type="button" aria-label="前の口コミ">‹</button>' +
       '<div class="rv-track" tabindex="0">' + cards + "</div>" +
