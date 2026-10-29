@@ -509,3 +509,12 @@ p{margin:0}
 .rv-more{align-self:flex-start;margin-top:10px;background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:700;color:var(--accent-deep);cursor:pointer;text-decoration:underline}
 .rv-track{align-items:flex-start}
 .rv-dots{flex-wrap:wrap;max-width:100%}
+
+/* 施工事例は Instagram へ */
+.insta-cta{display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px 30px;margin-top:28px}
+.insta-cta .ig{width:60px;height:60px;border-radius:18px;display:grid;place-items:center;color:#fff;background:radial-gradient(circle at 30% 110%,#FDCB52 0%,#FD8D32 25%,#E1306C 55%,#833AB4 85%)}
+.insta-cta .ig .ic{width:32px;height:32px}
+.insta-cta h3{font-size:clamp(18px,2vw,22px);margin-bottom:4px}
+.insta-cta p{font-size:14px;color:var(--muted)}
+.insta-cta .btn-insta{background:linear-gradient(90deg,#833AB4,#E1306C 55%,#FD8D32);color:#fff}
+@media (max-width:720px){.insta-cta{grid-template-columns:auto 1fr;padding:22px 20px}.insta-cta .btn{grid-column:1/-1}}

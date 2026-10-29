@@ -242,6 +242,16 @@ def page(lp, icons):
   </section>
 """
 
+    insta = ""
+    if reform:
+        insta = (
+            '      <div class="insta-cta reveal">\n'
+            f'        <span class="ig" aria-hidden="true">{ic("i-insta")}</span>\n'
+            f'        <div><h3>{lp["service"]}の施工事例は Instagram で</h3><p>実際の工事の様子を、写真で随時ご紹介しています。</p></div>\n'
+            f'        <a class="btn btn-insta" href="https://www.instagram.com/livii_kumamoto/" target="_blank" rel="noopener">{ic("i-insta")}Instagramで施工事例を見る</a>\n'
+            '      </div>'
+        )
+
     note = ""
     if reform and two_quotes:
         note = '<p class="note" style="margin-top:12px">※2社以上の見積もりは、草刈り・家具の新調・賃貸の管理業務を除きます。</p>'
@@ -324,6 +334,7 @@ def page(lp, icons):
       <div class="cards">
 {menu}
       </div>
+{insta}
     </div>
   </section>
 {listings}
@@ -404,7 +415,7 @@ def page(lp, icons):
     <div class="links">
       <a href="{brand_home}">{"Livii（住まいの工事）" if reform else "Livii不動産"}のページへ</a>
       <a href="../../">Livii 総合トップ</a>
-      <a href="https://www.instagram.com/livii_kumamoto/" target="_blank" rel="noopener">Instagram（@livii_kumamoto）</a>
+      <a href="https://www.instagram.com/livii_kumamoto/" target="_blank" rel="noopener">施工事例（Instagram）</a>
     </div>
   </div>
   <div class="wrap" style="margin-top:20px;font-size:12px;color:#A9ACAE">© Livii</div>
