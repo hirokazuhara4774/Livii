@@ -338,3 +338,84 @@ p{margin:0}
 .hero-photos .img-badge{position:absolute;top:12px;left:12px;right:auto;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;padding:1px 8px}
 .hero-photos .dot{position:absolute;left:-14px;bottom:10%;width:84px;height:84px;border-radius:50%;background:var(--accent);opacity:.9}
 @media (max-width:900px){.hero-photos{max-width:340px}}
+
+/* LINE の QR コード（パソコン表示のみ） */
+.contact-inner{display:flex;align-items:center;justify-content:center;gap:40px}
+.qr{background:#fff;border-radius:16px;padding:12px 12px 8px;text-align:center;color:var(--ink);flex:none}
+.qr img{width:132px;height:132px}
+.qr span{display:block;font-size:12px;font-weight:700;margin-top:2px}
+@media (max-width:760px){.qr{display:none}.contact-inner{display:block}}
+
+/* Livii不動産：3つの事業の入口 */
+.svc-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.svc-nav a{display:flex;flex-direction:column;gap:6px;text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px 22px;transition:transform .2s,box-shadow .2s,border-color .2s}
+.svc-nav a:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 18px 36px -28px rgba(0,0,0,.5)}
+.svc-nav .verb{font-size:13px;font-weight:700;color:var(--accent)}
+.svc-nav h3{font-size:20px}
+.svc-nav p{font-size:14px;color:var(--muted);flex:1}
+.svc-nav .more{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--accent);margin-top:8px}
+.svc-nav .more .ic{width:16px;height:16px}
+@media (max-width:860px){.svc-nav{grid-template-columns:1fr}}
+
+/* 事業ごとの見出し帯 */
+.sec-label{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:700;background:var(--accent);color:#fff;border-radius:999px;padding:4px 14px 4px 6px;margin-bottom:10px}
+.sec-label b{background:#fff;color:var(--accent);border-radius:999px;padding:0 10px}
+
+/* 2列（オーナー様／お部屋探しの方） */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.split .card ul{margin:10px 0 0;padding-left:1.2em;font-size:14px}
+.split .card li{margin:4px 0}
+@media (max-width:760px){.split{grid-template-columns:1fr}}
+
+/* 管理業務の一覧 */
+.checklist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.checklist li{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.checklist li .ic{color:#fff;background:var(--accent);border-radius:50%;padding:4px;width:24px;height:24px;flex:none;margin-top:2px}
+.checklist li b{display:block}
+.checklist li span{font-size:14px;color:var(--muted)}
+@media (max-width:760px){.checklist{grid-template-columns:1fr}}
+
+/* 物件一覧（Livii不動産） */
+.listings{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.listing{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+.listing-img{position:relative;aspect-ratio:4/3;background:var(--surface)}
+.listing-img img{width:100%;height:100%;object-fit:cover}
+.listing-img .status{position:absolute;left:12px;top:12px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;border-radius:6px;padding:2px 10px}
+.listing-img .sample{position:absolute;right:12px;top:12px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;border-radius:4px;padding:1px 8px}
+.listing-body{padding:18px 20px 20px;display:flex;flex-direction:column;flex:1}
+.listing .type{font-size:12px;font-weight:700;color:var(--accent);display:flex;justify-content:space-between}
+.listing .type span{color:var(--muted);font-weight:500}
+.listing h3{font-size:17px;margin:4px 0 6px}
+.listing .price{font-family:"Outfit","Zen Kaku Gothic New",sans-serif;font-weight:800;font-size:24px;color:var(--ink);margin-bottom:10px}
+.listing .price small{font-family:"Zen Kaku Gothic New",sans-serif;font-size:12px;font-weight:500;color:var(--muted);margin-left:8px}
+.listing dl{margin:0;display:grid;gap:4px;font-size:13px}
+.listing dl div{display:grid;grid-template-columns:5.5em 1fr;gap:8px;border-bottom:1px dashed var(--line);padding-bottom:4px}
+.listing dt{color:var(--muted)}
+.listing dd{margin:0}
+.listing .tags{margin-top:12px}
+.listing .note{margin-top:8px}
+.listing-cta{display:flex;gap:8px;margin-top:auto;padding-top:16px}
+.listing-cta a{flex:1;text-align:center;text-decoration:none;font-size:13px;font-weight:700;border-radius:999px;padding:10px 8px;border:1.5px solid var(--accent);color:var(--accent)}
+.listing-cta a.line{background:var(--line-green);border-color:var(--line-green);color:#fff}
+.listing.closed{opacity:.55}
+.listing.closed .status{background:var(--muted)}
+.listings .empty{grid-column:1/-1;text-align:center;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:var(--radius);padding:32px}
+.list-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:0 0 16px}
+.list-head h3{font-size:22px}
+.list-head p{font-size:13px;color:var(--muted)}
+@media (max-width:960px){.listings{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:600px){.listings{grid-template-columns:1fr}.list-head{display:block}}
+
+/* 管理業務（主な4つ） */
+.manage-main{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:28px}
+.mcard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px;border-top:4px solid var(--accent)}
+.mcard .head-row{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.mcard .icon{width:50px;height:50px;border-radius:14px;background:var(--accent-soft);color:var(--accent-deep);display:grid;place-items:center;flex:none}
+.mcard .icon .ic{width:26px;height:26px}
+.mcard h3{font-size:20px}
+.mcard h3 small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.mcard p{font-size:14px;color:var(--muted)}
+.mcard ul{margin:12px 0 0;padding-left:1.2em;font-size:14px}
+.mcard li{margin:4px 0}
+.sub-title{font-size:18px;margin:8px 0 14px}
+@media (max-width:760px){.manage-main{grid-template-columns:1fr}}
