@@ -209,29 +209,10 @@
       <div class="head">
         <p class="en">Voice</p>
         <h2 id="voice-title">お客様の声</h2>
-        <p>Googleの口コミでいただいた声をご紹介します。</p>
+        <p>Googleマップの口コミでいただいた声を、すべてご紹介します。</p>
       </div>
-      <!-- TODO: 原文と照合 -->
-      <div class="cards">
-        <figure class="voice reveal">
-          <div class="stars" aria-label="5点満点中5点">★★★★★</div>
-          <span class="tag">外構工事</span>
-          <blockquote>困っていることを相談したところ、すぐに電話対応してもらい、その日のうちに現場で見積もり、次の日には施工まで行っていただきました。紹介された外構業者さんもとても丁寧で、細かく確認しながら施工していただきました。</blockquote>
-          <cite>杉本 祐貴 様</cite>
-        </figure>
-        <figure class="voice reveal">
-          <div class="stars" aria-label="5点満点中5点">★★★★★</div>
-          <span class="tag">店舗づくり</span>
-          <blockquote>お店作りをお願いしました。いろいろとすぐに対応してくださり、こちらの要望にも親身になって受けてくださいました。何かあれば相談できる存在がいるととても安心できます。無事オープンできました。</blockquote>
-          <cite>ヤドリギ 様</cite>
-        </figure>
-        <figure class="voice reveal">
-          <div class="stars" aria-label="5点満点中5点">★★★★★</div>
-          <span class="tag">外壁・塗装</span>
-          <blockquote>実家の外壁工事・塗装を依頼しました。対応も迅速で、すぐ見積もりしていただきました。職人さんも気さくな方で、仕事は丁寧、大変満足です。翌日の作業内容も伝えてくださったので、車の出し入れも問題なくできました。</blockquote>
-          <cite>濱崎 かおり 様</cite>
-        </figure>
-      </div>
+      <!-- 口コミは assets/data/reviews.js に追加すると、ここに横スライドで表示されます -->
+      <div class="reviews" data-reviews></div>
     </div>
   </section>
 
@@ -329,6 +310,8 @@
   <a class="btn btn-line" href="https://line.me/ti/p/kCJGlQU2Ja" target="_blank" rel="noopener"><svg class="ic"><use href="#i-line"/></svg>LINEで相談</a>
 </div>
 
+<script src="../assets/data/reviews.js"></script>
+<script src="../assets/js/reviews.js"></script>
 <script>
 document.documentElement.classList.add('js');
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.1});
