@@ -39,7 +39,7 @@
 <header class="header">
   <div class="wrap">
     <a href="./" class="logo" aria-label="Livii 住まいの工事 トップへ">
-      <svg class="logo-mark" aria-hidden="true"><use href="#i-logo"/></svg>
+      <img class="logo-img" src="../assets/img/logo.png" alt="">
       <span class="logo-name"><b>Livii</b><span>リフォーム・外構・塗装の相談窓口</span></span>
     </a>
     <nav class="nav" aria-label="メインメニュー">
@@ -73,37 +73,12 @@
           <span><svg class="ic"><use href="#i-check"/></svg>プラス1のサービス</span>
         </div>
       </div>
-      <!-- TODO: 暮らしの写真・施工写真が用意できたら差し替え -->
-      <svg class="hero-visual" viewBox="0 0 480 500" role="img" aria-label="窓辺に植物のある心地よい部屋のイラスト">
-        <defs>
-          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3F6EE"/><stop offset="1" stop-color="#DCE8D6"/></linearGradient>
-          <clipPath id="win"><path d="M130 440V210a110 110 0 0 1 220 0v230z"/></clipPath>
-        </defs>
-        <rect x="20" y="40" width="440" height="440" rx="40" fill="#EEDFCB"/>
-        <g clip-path="url(#win)">
-          <rect x="120" y="90" width="240" height="360" fill="url(#sky)"/>
-          <circle cx="300" cy="170" r="26" fill="#FFF6E6"/>
-          <path d="M120 360c50-40 110-50 160-30s60 10 80 0v120H120z" fill="#A9C2A2"/>
-          <path d="M120 400c60-30 140-30 240-10v60H120z" fill="#6F8F6A"/>
-        </g>
-        <path d="M130 440V210a110 110 0 0 1 220 0v230z" fill="none" stroke="#B9875A" stroke-width="14" stroke-linejoin="round"/>
-        <path d="M240 100v340M130 300h220" stroke="#B9875A" stroke-width="8"/>
-        <rect x="104" y="436" width="272" height="16" rx="4" fill="#9C6F47"/>
-        <!-- 植物 -->
-        <path d="M70 480l10-70h56l10 70z" fill="#B9875A"/>
-        <g fill="#6F8F6A">
-          <ellipse cx="96" cy="370" rx="14" ry="40" transform="rotate(-24 96 370)"/>
-          <ellipse cx="122" cy="360" rx="14" ry="44" transform="rotate(18 122 360)"/>
-          <ellipse cx="108" cy="330" rx="12" ry="40"/>
-        </g>
-        <path d="M108 410v-70" stroke="#4D6A49" stroke-width="3"/>
-        <!-- いす -->
-        <g fill="#FFFDF8" stroke="#9C6F47" stroke-width="5" stroke-linejoin="round">
-          <rect x="360" y="380" width="70" height="20" rx="6"/>
-          <path d="M372 380v-60h46v60"/>
-          <path d="M370 400l-6 60M420 400l6 60"/>
-        </g>
-      </svg>
+      <!-- 仮の写真（Unsplash）。実際の暮らし・施工写真が用意できたら差し替え -->
+      <div class="hero-photos">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="ph-main"><img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1000&q=70" alt="明るいリビングのイメージ写真" loading="lazy" onerror="this.remove()"><span class="img-badge">イメージ</span></div>
+        <div class="ph-sub"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=700&q=70" alt="外構の整った住宅のイメージ写真" loading="lazy" onerror="this.remove()"></div>
+      </div>
     </div>
   </section>
 
@@ -187,14 +162,15 @@
         <p class="en">Works</p>
         <h2 id="works-title">施工事例</h2>
         <p>工事の内容と、ご相談からの経緯をご紹介します。</p>
+        <p class="note">※現在掲載している写真はイメージです。</p>
       </div>
-      <!-- TODO: 実際の施工写真に差し替え（img要素に置き換え） -->
+      <!-- 仮の写真（Unsplash）。実際の施工写真に差し替え -->
       <div class="photos">
-        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><span class="cap">外構工事｜写真を差し替え</span></div>
-        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><span class="cap">外壁塗装</span></div>
-        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><span class="cap">店舗内装</span></div>
-        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><span class="cap">カーポート</span></div>
-        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><span class="cap">解体・造成</span></div>
+        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=70" alt="外構のイメージ写真" loading="lazy" onerror="this.remove()"><span class="img-badge">イメージ</span><span class="cap">外構</span></div>
+        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><img src="https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=600&q=70" alt="塗装のイメージ写真" loading="lazy" onerror="this.remove()"><span class="img-badge">イメージ</span><span class="cap">塗装</span></div>
+        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><img src="https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=600&q=70" alt="内装リフォームのイメージ写真" loading="lazy" onerror="this.remove()"><span class="img-badge">イメージ</span><span class="cap">内装リフォーム</span></div>
+        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=70" alt="リビングのイメージ写真" loading="lazy" onerror="this.remove()"><span class="img-badge">イメージ</span><span class="cap">リビング</span></div>
+        <div class="photo"><span class="ph"><svg class="ic"><use href="#i-image"/></svg></span><img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=70" alt="工事現場のイメージ写真" loading="lazy" onerror="this.remove()"><span class="img-badge">イメージ</span><span class="cap">工事現場</span></div>
       </div>
     </div>
   </section>
@@ -276,8 +252,7 @@
   <section class="block tight" aria-labelledby="person-title">
     <div class="wrap">
       <div class="person reveal">
-        <!-- TODO: 代表の似顔絵画像に差し替え -->
-        <div class="avatar" aria-hidden="true">原</div>
+        <img class="avatar" src="../assets/img/hara.jpg" alt="代表 原 大和の似顔絵">
         <div>
           <p class="role">代表 ／ 宅地建物取引士</p>
           <h3 id="person-title">原 大和</h3>
@@ -328,7 +303,7 @@
   <div class="wrap">
     <div class="grid">
       <div>
-        <span class="logo"><svg class="logo-mark" aria-hidden="true"><use href="#i-logo"/></svg><span class="logo-name"><b>Livii</b><span>リフォーム・外構・塗装の相談窓口</span></span></span>
+        <span class="logo"><img class="logo-img" src="../assets/img/logo.png" alt=""><span class="logo-name"><b>Livii</b><span>リフォーム・外構・塗装の相談窓口</span></span></span>
         <address>〒864-0031 熊本県荒尾市川登1916-5 101<br>TEL <a href="tel:07043860745">070-4386-0745</a><br>Mail <a href="mailto:info@livii.jp">info@livii.jp</a></address>
       </div>
       <div>

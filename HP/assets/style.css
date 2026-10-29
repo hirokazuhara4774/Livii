@@ -12,10 +12,9 @@
   --wrap:1120px;
   --head-h:72px;
   /* ブランド色（両ブランド共通で参照する） */
-  --reform-bg:#F5EFE4;
-  --reform-wood:#B9875A;
-  --reform-green:#6F8F6A;
-  --reform-green-deep:#4D6A49;
+  --reform-bg:#FBF6EF;
+  --reform-orange:#E2732A;
+  --reform-navy:#23213D;
   --estate-green:#1F4D3A;
   --estate-charcoal:#2E3134;
 }
@@ -23,12 +22,12 @@
 /* 総合トップ：生成りの背景にチャコール */
 .t-group{
   --bg:#F7F4EE; --surface:#FFFFFF; --ink:#2E3134; --muted:#6C6A66; --line:#E5E0D6;
-  --accent:#2E3134; --accent-deep:#1E2022; --accent-soft:#ECE8E0; --sub:#B9875A; --on-accent:#fff;
+  --accent:#2E3134; --accent-deep:#1E2022; --accent-soft:#ECE8E0; --sub:#E2732A; --on-accent:#fff;
 }
-/* Livii：生成り・木の色・柔らかな緑 */
+/* Livii：現在のロゴと同じオレンジとネイビー */
 .t-reform{
-  --bg:#F5EFE4; --surface:#FFFDF8; --ink:#3B342D; --muted:#7A7065; --line:#E6DCCD;
-  --accent:#6F8F6A; --accent-deep:#4D6A49; --accent-soft:#E3EBDD; --sub:#B9875A; --sub-soft:#EEDFCB; --on-accent:#fff;
+  --bg:#FBF6EF; --surface:#FFFFFF; --ink:#23213D; --muted:#6B6878; --line:#E9E2D8;
+  --accent:#E2732A; --accent-deep:#C25A14; --accent-soft:#FCEBDD; --sub:#23213D; --sub-soft:#ECEAF2; --on-accent:#fff;
 }
 /* Livii不動産：白・深緑・チャコール */
 .t-estate{
@@ -51,6 +50,8 @@ p{margin:0}
 /* ---------- ロゴ ---------- */
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
 .logo-mark{width:36px;height:36px;color:var(--ink)}
+.logo-img{width:38px;height:auto;flex:none}
+.footer .logo-img{background:#fff;border-radius:10px;padding:5px;width:46px}
 .logo-mark{--logo-acc:var(--sub)}
 .t-estate .logo-mark{--logo-acc:var(--accent)}
 .logo-name{display:flex;flex-direction:column;line-height:1.1}
@@ -113,6 +114,9 @@ p{margin:0}
 
 /* 約1.5画面目の帯 */
 .band{background:var(--accent);color:var(--on-accent);padding:56px 0}
+.t-reform .band{background:var(--sub)}
+.t-reform .band .item{border-left-color:var(--accent)}
+.t-reform .band .item b{color:#FFB37E}
 .band .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .band .item{border-left:2px solid rgba(255,255,255,.35);padding:2px 0 2px 18px}
 .band .item b{display:block;font-size:clamp(20px,2.2vw,26px);line-height:1.35;margin-bottom:6px}
@@ -153,6 +157,9 @@ p{margin:0}
 .photo .cap{background:rgba(255,255,255,.88);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700}
 .photo .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--accent-deep);opacity:.35}
 .photo .ph .ic{width:44px;height:44px}
+.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo .cap{position:relative;z-index:1}
+.img-badge{position:absolute;z-index:1;top:12px;right:12px;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;padding:1px 8px}
 @media (max-width:760px){.photos{grid-template-columns:1fr 1fr;grid-template-rows:180px 140px 140px}.photo:first-child{grid-column:span 2;grid-row:auto}}
 
 /* 悩みリスト */
@@ -211,7 +218,7 @@ p{margin:0}
 /* 担当者 */
 .person{display:grid;grid-template-columns:200px 1fr;gap:40px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:36px}
 .t-estate .person{background:#fff}
-.avatar{width:180px;height:180px;border-radius:50%;background:var(--accent-soft);color:var(--accent-deep);display:grid;place-items:center;font-size:56px;font-weight:700;border:6px solid #fff;box-shadow:0 14px 30px -20px rgba(0,0,0,.5)}
+.avatar{width:180px;height:180px;border-radius:50%;background:#fff;object-fit:cover;border:6px solid #fff;box-shadow:0 14px 30px -20px rgba(0,0,0,.5)}
 .person .role{font-size:13px;font-weight:700;color:var(--accent)}
 .person h3{font-size:26px;margin:2px 0}
 .person .roman{font-family:"Outfit",sans-serif;font-size:12px;letter-spacing:.18em;color:var(--muted)}
@@ -228,9 +235,9 @@ p{margin:0}
 .bridge.to-estate{background:#fff;border-left:6px solid var(--estate-green)}
 .bridge.to-estate .en{color:var(--estate-green)}
 .bridge.to-estate .btn{background:var(--estate-green);color:#fff}
-.bridge.to-reform{background:var(--reform-bg);border-left:6px solid var(--reform-green)}
-.bridge.to-reform .en{color:var(--reform-green-deep)}
-.bridge.to-reform .btn{background:var(--reform-green-deep);color:#fff}
+.bridge.to-reform{background:var(--reform-bg);border-left:6px solid var(--reform-orange)}
+.bridge.to-reform .en{color:var(--reform-orange)}
+.bridge.to-reform .btn{background:var(--reform-orange);color:#fff}
 @media (max-width:720px){.bridge{grid-template-columns:1fr;padding:26px 22px}}
 
 /* お問い合わせ */
@@ -280,7 +287,7 @@ p{margin:0}
    ========================================================= */
 .g-hero{padding:72px 0 40px;text-align:center}
 .g-hero h1{font-size:clamp(32px,5vw,60px);letter-spacing:.04em;line-height:1.4}
-.g-hero h1 .r{color:var(--reform-green-deep)}
+.g-hero h1 .r{color:var(--reform-orange)}
 .g-hero h1 .e{color:var(--estate-green)}
 .g-hero h1 .ln{display:inline-block}
 .g-hero .lead{max-width:36em;margin:22px auto 0;font-size:clamp(15px,1.5vw,18px)}
@@ -295,11 +302,11 @@ p{margin:0}
 .brand li{font-size:13px;font-weight:700;border-radius:999px;padding:4px 12px}
 .brand .go{margin-top:auto;display:inline-flex;align-items:center;gap:10px;font-weight:700;align-self:flex-start;border-radius:999px;padding:14px 24px}
 .brand .go .ic{width:18px;height:18px}
-.brand.reform{background:var(--reform-bg);border:1px solid #E6DCCD;color:#3B342D}
-.brand.reform .tag{color:var(--reform-wood)}
-.brand.reform .catch{color:var(--reform-green-deep)}
-.brand.reform li{background:#fff;color:var(--reform-green-deep)}
-.brand.reform .go{background:var(--reform-green-deep);color:#fff}
+.brand.reform{background:var(--reform-bg);border:1px solid #E9E2D8;color:var(--reform-navy)}
+.brand.reform .tag{color:var(--reform-orange)}
+.brand.reform .catch{color:var(--reform-orange)}
+.brand.reform li{background:#fff;color:var(--reform-navy)}
+.brand.reform .go{background:var(--reform-orange);color:#fff}
 .brand.estate{background:var(--estate-green);color:#fff}
 .brand.estate .tag{color:#A9C9B8}
 .brand.estate .catch{color:#fff}
@@ -317,7 +324,17 @@ p{margin:0}
 
 .contact-split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .contact-split .contact{padding:44px 32px}
-.contact-split .contact.r{background:var(--reform-green-deep)}
+.contact-split .contact.r{background:var(--reform-orange)}
 .contact-split .contact.e{background:var(--estate-green)}
 .contact-split .contact .tel{font-size:clamp(26px,3vw,34px)}
 @media (max-width:820px){.contact-split{grid-template-columns:1fr}}
+
+/* Livii ヒーローの写真 */
+.hero-photos{position:relative;width:100%;max-width:520px;justify-self:center;aspect-ratio:1/1}
+.hero-photos .ph-main,.hero-photos .ph-sub{position:absolute;border-radius:24px;overflow:hidden;background:linear-gradient(135deg,var(--accent-soft),var(--sub-soft));box-shadow:0 24px 50px -30px rgba(35,33,61,.6)}
+.hero-photos .ph-main{inset:0 14% 18% 0}
+.hero-photos .ph-sub{width:52%;aspect-ratio:4/3;right:0;bottom:0;border:6px solid var(--bg)}
+.hero-photos img{width:100%;height:100%;object-fit:cover}
+.hero-photos .img-badge{position:absolute;top:12px;left:12px;right:auto;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;padding:1px 8px}
+.hero-photos .dot{position:absolute;left:-14px;bottom:10%;width:84px;height:84px;border-radius:50%;background:var(--accent);opacity:.9}
+@media (max-width:900px){.hero-photos{max-width:340px}}
