@@ -98,3 +98,9 @@ Livii のホームページです。ファイルを開けばそのまま表示�
 - 全件を自動で取るには、Google ビジネスプロフィール API（オーナー向け・利用申請が必要）か、口コミ連携サービス（Trustindex・Elfsight など）を使う。
 - どちらの場合も、取得した口コミで `assets/data/reviews.js` を書き換える形にすれば、ページ側は変えなくてよい。
 - `mapsUrl` に Google マップの Livii のページの URL を入れると、「Googleマップで口コミを見る・書く」ボタンが表示される。
+
+## アクセス・営業時間・お問い合わせフォーム（総合トップ）
+
+- 所在地：〒864-0031 熊本県荒尾市川登1918-12。営業時間 9:00〜18:00、定休日 水曜日。住所や営業時間を変えるときは、`index.html`（会社概要・アクセス・フッター）、`reform/index.html`・`fudosan/index.html` のフッターとお問い合わせ欄、`lp/_build.py` の `ADDRESS` / `HOURS` を直す。
+- 地図は Google マップの埋め込み（`index.html` の `#access` の iframe）。API キーは不要。
+- お問い合わせフォームの送信先は `assets/js/contact-form.js` の `FORM_ENDPOINT`。空のときは、入力内容入りのメールをお客様のメールアプリで開く。フォーム送信サービス（Formspree など）を契約したら、その送信先 URL を入れる。

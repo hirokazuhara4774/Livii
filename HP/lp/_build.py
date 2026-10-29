@@ -12,7 +12,8 @@ TEL = "070-4386-0745"
 TEL_LINK = "tel:07043860745"
 LINE = "https://line.me/ti/p/kCJGlQU2Ja"
 MAIL = "info@livii.jp"
-ADDRESS = "〒864-0031 熊本県荒尾市川登1916-5 101"
+ADDRESS = "〒864-0031 熊本県荒尾市川登1918-12"
+HOURS = "営業時間 9:00〜18:00（定休日：水曜日）"
 
 # 経営理念（総合トップと同じ文言）
 MISSION = "地域の「困った」を解決し、誰もが安心して暮らせる環境を創る。"
@@ -393,7 +394,7 @@ def page(lp, icons):
             <h2 id="contact-title">{lp["cta"]}</h2>
             <p>ご相談は無料です。相談だけでもお気軽にどうぞ。</p>
             <a class="tel" href="{TEL_LINK}">{ic("i-phone")}{TEL}</a>
-            <div class="hours">お電話でのご相談はこちら</div>
+            <div class="hours">受付 9:00〜18:00（定休日：水曜日）</div>
             <div class="cta-row">
               <a class="btn btn-line" href="{LINE}" target="_blank" rel="noopener">{ic("i-line")}LINEで相談</a>
               <a class="btn btn-white" href="mailto:{MAIL}?subject={subject}%E3%81%AE%E3%81%94%E7%9B%B8%E8%AB%87">{ic("i-mail")}メールで相談</a>
@@ -410,7 +411,7 @@ def page(lp, icons):
   <div class="wrap">
     <div>
       <span class="logo"><img class="logo-img" src="../../assets/img/logo.png" alt=""><span class="logo-name"><b>{brand_name}</b><span>{brand_desc}</span></span></span>
-      <address>{footer_extra}{ADDRESS}<br>TEL <a href="{TEL_LINK}">{TEL}</a>　Mail <a href="mailto:{MAIL}">{MAIL}</a></address>
+      <address>{footer_extra}{ADDRESS}<br>{HOURS}<br>TEL <a href="{TEL_LINK}">{TEL}</a>　Mail <a href="mailto:{MAIL}">{MAIL}</a></address>
     </div>
     <div class="links">
       <a href="{brand_home}">{"Livii（住まいの工事）" if reform else "Livii不動産"}のページへ</a>
