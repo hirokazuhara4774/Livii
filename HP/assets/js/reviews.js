@@ -31,7 +31,8 @@
       '<div><cite>' + esc(r.name) + ' 様</cite><span class="rv-stars" aria-label="5点満点中' + r.rating + '点">' + stars(r.rating) + "</span></div>" +
       '<span class="rv-g" aria-label="Googleの口コミ">G</span></div>' +
       (r.tag ? '<span class="tag">' + esc(r.tag) + "</span>" : "") +
-      "<blockquote>" + esc(r.text) + "</blockquote></figure>";
+      "<blockquote>" + esc(r.text) + "</blockquote>" +
+      '<button class="rv-more" type="button" hidden>続きを読む</button></figure>';
   }).join("");
 
   box.innerHTML =
@@ -43,6 +44,19 @@
       '<button class="rv-btn next" type="button" aria-label="次の口コミ">›</button>' +
     "</div>" +
     '<div class="rv-dots" aria-hidden="true">' + list.map(function () { return "<span></span>"; }).join("") + "</div>";
+
+  // 長い口コミは途中までにして「続きを読む」で開く
+  box.querySelectorAll(".rv-card").forEach(function (card) {
+    var q = card.querySelector("blockquote");
+    var btn = card.querySelector(".rv-more");
+    if (q.scrollHeight > q.clientHeight + 4) {
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        var open = card.classList.toggle("open");
+        btn.textContent = open ? "閉じる" : "続きを読む";
+      });
+    }
+  });
 
   var track = box.querySelector(".rv-track");
   var dots = box.querySelectorAll(".rv-dots span");

@@ -504,3 +504,8 @@ p{margin:0}
 .rv-dots span.on{background:var(--accent)}
 @media (max-width:960px){.rv-card{flex-basis:calc((100% - 18px)/2)}}
 @media (max-width:600px){.rv-card{flex-basis:86%}.rv-btn{display:none}.rv-link{margin-left:0}}
+.rv-card blockquote{white-space:pre-line;display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden}
+.rv-card.open blockquote{display:block;-webkit-line-clamp:unset}
+.rv-more{align-self:flex-start;margin-top:10px;background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:700;color:var(--accent-deep);cursor:pointer;text-decoration:underline}
+.rv-track{align-items:flex-start}
+.rv-dots{flex-wrap:wrap;max-width:100%}
