@@ -54,3 +54,25 @@ Livii のホームページです。ファイルを開けばそのまま表示�
 - 価格・賃料・面積・築年月が資料と合っているか。
 - 取引態様（媒介など）を `note` に書いたか。不動産の広告は表示のルール（不動産の表示に関する公正競争規約）に沿って書く。
 - 宅地建物取引業の免許番号がフッターに入っているか（免許取得前は物件を掲載しない）。
+
+## 事業別 LP（広告・SNS 用）
+
+広告・Instagram・チラシの QR から直接来てもらうための1ページです。メニューを置かず、その事業の相談（電話・LINE）に集中させる。
+
+| 事業 | URL（HP からの相対パス） | ブランド |
+| --- | --- | --- |
+| 外構工事 | `lp/gaiko/` | Livii |
+| リフォーム工事 | `lp/reform/` | Livii |
+| 外壁塗装 | `lp/gaiheki/` | Livii |
+| 解体・造成工事 | `lp/kaitai/` | Livii |
+| 太陽光・蓄電池 | `lp/solar/` | Livii |
+| 家具の新調 | `lp/kagu/` | Livii |
+| 住まいのお困りごと | `lp/komarigoto/` | Livii |
+| 不動産の売買 | `lp/baibai/` | Livii不動産 |
+| 賃貸の仲介 | `lp/chintai/` | Livii不動産 |
+| 収益物件の管理 | `lp/kanri/` | Livii不動産 |
+
+- LP の HTML は `lp/_build.py` から書き出している。文章を直すときは `_build.py` の `LPS` を直し、HP フォルダで `python3 lp/_build.py` を実行する。HTML を直接直さない。
+- 構成はどの LP も同じ：最初の画面（見出し・電話/LINE）→ お悩み → 選ばれる理由 → 対応内容 →（売買・賃貸は物件一覧）→ 経営理念（Mission・Value）→ 流れ →（あればお客様の声）→ 代表 → よくある質問 → お問い合わせ。
+- 経営理念の文言は総合トップ（`index.html` の `#philosophy`）と `_build.py` の `MISSION` / `VALUE` の2か所にある。変えるときは両方直す。
+- 写真は `assets/img/photos/` の仮写真（Unsplash License）。実際の写真に差し替えるときは同じファイル名で置き換えるか、`_build.py` の `photo` を変える。
