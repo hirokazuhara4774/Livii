@@ -37,6 +37,10 @@
 <symbol id="i-chat" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v11H10l-6 4z M8 9h8M8 12h5"/></symbol>
 <symbol id="i-bulb" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
 <symbol id="i-broom" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 3l-3 8M7 11h10l1 10H6zM10 15v6M14 15v6"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13H7zM14 3v5h5M10 12h6M10 16h6"/></symbol>
+<symbol id="i-ruler" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 16 16 3l5 5L8 21zM7 12l2 2M10 9l2 2M13 6l2 2"/></symbol>
+<symbol id="i-bank" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-5 9 5M5 9v9M10 9v9M14 9v9M19 9v9M3 21h18"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2A5 5 0 0 1 21.5 19"/></g></symbol>
 </defs></svg>
 
 <header class="header">
@@ -127,6 +131,37 @@
           <span class="more">詳しく見る<svg class="ic"><use href="#i-arrow"/></svg></span>
         </a>
       </div>
+    </div>
+  </section>
+
+  <!-- ワンストップ：窓口ひとつで、専門家と工事までつなぐ -->
+  <section class="block" id="onestop" aria-labelledby="onestop-title">
+    <div class="wrap onestop">
+      <div class="onestop-text">
+        <p class="en">One-Stop</p>
+        <h2 id="onestop-title">不動産も、その先の工事も。<br>窓口は Livii不動産ひとつ。</h2>
+        <p>不動産を売る・貸すときには、登記や測量、税金、解体、修繕など、いくつもの専門家や業者が関わります。Livii不動産は、お客様に代わってそれぞれの専門家と連携し、必要な手配をまとめて行います。</p>
+        <p>修繕やリフォーム、解体の手配は、系列の Livii が担当。2社以上の見積もりを比べてご提案できるので、売る前・貸す前に「直すか、そのままか」も費用で判断できます。</p>
+        <ul class="onestop-points">
+          <li><svg class="ic"><use href="#i-check"/></svg><span><b>ご連絡はひとつの窓口だけ</b>あちこちに電話や説明をする必要はありません。</span></li>
+          <li><svg class="ic"><use href="#i-check"/></svg><span><b>段取りとスケジュールはお任せ</b>専門家どうしの日程調整もこちらで行います。</span></li>
+          <li><svg class="ic"><use href="#i-check"/></svg><span><b>相続した家の売却もご相談を</b>名義の変更から片付け、解体、売却まで順番に整理します。</span></li>
+        </ul>
+      </div>
+      <!-- TODO: 実際に連携している専門家・業者に合わせて調整 -->
+      <figure class="hub" aria-label="Livii不動産が窓口となり、司法書士・土地家屋調査士・税理士・解体業者・Livii（修繕・リフォーム）・金融機関と連携する図">
+        <svg class="hub-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="42" x2="66.5" y2="16.0"/><line x1="50" y1="42" x2="83.0" y2="42.0"/><line x1="50" y1="42" x2="66.5" y2="68.0"/><line x1="50" y1="42" x2="33.5" y2="68.0"/><line x1="50" y1="42" x2="17.0" y2="42.0"/><line x1="50" y1="42" x2="33.5" y2="16.0"/><line class="up" x1="50" y1="84" x2="50" y2="56"/></svg>
+        <ul class="hub-nodes" aria-hidden="true">
+          <li class="hub-node" style="left:66.5%;top:16.0%"><span class="hub-ic"><svg class="ic"><use href="#i-doc"/></svg></span><b>司法書士</b><small>登記の手続き</small></li>
+          <li class="hub-node" style="left:83.0%;top:42.0%"><span class="hub-ic"><svg class="ic"><use href="#i-ruler"/></svg></span><b>土地家屋調査士</b><small>測量・境界の確認</small></li>
+          <li class="hub-node" style="left:66.5%;top:68.0%"><span class="hub-ic"><svg class="ic"><use href="#i-yen"/></svg></span><b>税理士</b><small>売却時の税金</small></li>
+          <li class="hub-node" style="left:33.5%;top:68.0%"><span class="hub-ic"><svg class="ic"><use href="#i-helmet"/></svg></span><b>解体業者</b><small>解体・更地にする</small></li>
+          <li class="hub-node own" style="left:17.0%;top:42.0%"><span class="hub-ic"><svg class="ic"><use href="#i-reform"/></svg></span><b>Livii</b><small>修繕・リフォーム</small></li>
+          <li class="hub-node" style="left:33.5%;top:16.0%"><span class="hub-ic"><svg class="ic"><use href="#i-bank"/></svg></span><b>金融機関</b><small>住宅ローン</small></li>
+        </ul>
+        <div class="hub-center" aria-hidden="true"><img src="../assets/img/logo.png" alt=""><b>Livii不動産</b><small>ご相談窓口</small></div>
+        <div class="hub-client" aria-hidden="true"><span class="hub-arrow">ご相談はここだけ</span><span class="hub-you"><svg class="ic"><use href="#i-users"/></svg>お客様</span></div>
+      </figure>
     </div>
   </section>
 
