@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 検索エンジン向けのページ一覧。ページを追加・削除したら更新し、lastmod を更新日にする。
+     ドメインが livii.jp と異なる場合は、すべての loc を書き換える。 -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://livii.jp/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/reform/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/fudosan/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/gaiko/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/reform/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/gaiheki/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/kaitai/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/solar/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/kagu/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/komarigoto/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/baibai/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/chintai/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/lp/kanri/</loc><lastmod>2026-11-01</lastmod></url>
+  <url><loc>https://livii.jp/sitemap/</loc><lastmod>2026-11-01</lastmod></url>
+</urlset>

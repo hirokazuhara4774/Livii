@@ -417,6 +417,7 @@ def page(lp, icons):
       <a href="{brand_home}">{"Livii（住まいの工事）" if reform else "Livii不動産"}のページへ</a>
       <a href="../../">Livii 総合トップ</a>
       <a href="../../privacy/">プライバシーポリシー</a>
+      <a href="../../sitemap/">サイトマップ</a>
       <a href="https://www.instagram.com/livii_kumamoto/" target="_blank" rel="noopener">施工事例（Instagram）</a>
     </div>
   </div>
