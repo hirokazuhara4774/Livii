@@ -628,3 +628,11 @@ p{margin:0}
 .sm-col li a::before{content:"";position:absolute;left:2px;top:50%;width:6px;height:6px;border-top:2px solid var(--muted);border-right:2px solid var(--muted);transform:translateY(-50%) rotate(45deg)}
 .sm-col li a:hover{color:var(--accent-deep)}
 @media (max-width:760px){.sm-grid{grid-template-columns:1fr}.sm-col{padding:22px 20px}}
+
+/* フッター最下段：コピーライトとプライバシーポリシー・サイトマップを同じ並びに */
+.footer .copy,.lp-footer .copy{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 20px}
+.lp-footer .copy{margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#A9ACAE}
+.legal{display:flex;flex-wrap:wrap;gap:4px 0}
+.legal a{text-decoration:none;color:#C9CBCC}
+.legal a:hover{color:#fff}
+.legal a+a::before{content:"|";margin:0 12px;color:#6F7376}
