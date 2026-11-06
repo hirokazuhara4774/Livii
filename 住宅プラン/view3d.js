@@ -544,50 +544,159 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
   return g;
 }
 
-// 車：車の種類ごとの横から見た形を押し出して作る（前は +z）
-function carMesh(g, it, W, L, H, c) {
-  const car = CARS[it.model], P = CAR_BODIES[car ? car.body : 'sedan'] || CAR_BODIES.sedan;
-  const side = (pts, depth, m) => {
-    const sh = new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(z, y)));
-    const geo = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: .04, bevelSize: .04, bevelSegments: 3, curveSegments: 6 });
-    geo.translate(0, 0, -depth / 2); geo.rotateY(-Math.PI / 2);
-    const m2 = mesh(geo, m); g.add(m2); return m2;
-  };
-  const r = P.r, cl = P.cl, belt = Math.min(P.belt, H - .3), hoodH = Math.min(P.hoodH, belt + .05);
+// 車：車の種類ごとの寸法・形から、なめらかな車体を作る（前は +z）。
+// メーカーのエンブレムや特定車種のデザインは入れず、一般的な形にとどめる。
+const paintCache = new Map();
+function paintMat(c, side) {
+  const key = c + (side ? 'D' : '');
+  if (!paintCache.has(key)) paintCache.set(key, new THREE.MeshPhysicalMaterial({ color: c, metalness: .5, roughness: .3, clearcoat: 1, clearcoatRoughness: .05, envMapIntensity: 1.25, side: side ? THREE.DoubleSide : THREE.FrontSide }));
+  return paintCache.get(key);
+}
+let carShadowTex = null;
+function carShadow() {
+  if (!carShadowTex) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const c = cv.getContext('2d'), g = c.createRadialGradient(64, 64, 10, 64, 64, 64);
+    g.addColorStop(0, 'rgba(0,0,0,.65)'); g.addColorStop(.6, 'rgba(0,0,0,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 128, 128); carShadowTex = new THREE.CanvasTexture(cv);
+  }
+  return new THREE.MeshBasicMaterial({ map: carShadowTex, transparent: true, depthWrite: false });
+}
+// 車体（長さ L の部分を zoff の位置に）。axles：タイヤの位置（z）。返り値なし
+function carBody(g, L, W, H, P, zoff, M3, axles, r, rearOpen) {
+  const cl = P.cl, belt = Math.min(P.belt, H - .3), hoodH = Math.min(P.hoodH, belt + .05);
   const zr0 = -L / 2 + P.rear, zr1 = -L / 2 + P.rearTop, zf0 = L / 2 - P.hood, zf1 = Math.max(zr1 + .4, zf0 - P.ws);
-  const paint = mat(c, { metalness: .5, roughness: .28, envMapIntensity: 1.3 });
-  const glassM = mat('#1d262e', { metalness: .6, roughness: .1, envMapIntensity: 1.8 });
+  const prof = P.deck
+    ? [[-L / 2, belt - .06], [-L / 2 + .12, belt + .02], [zr0, belt + .05], [zr1, H], [zf1, H - .01], [zf0, hoodH + .05], [L / 2 - .3, hoodH - .01], [L / 2 - .06, hoodH - .16], [L / 2, hoodH - .3]]
+    : [[-L / 2, belt + (rearOpen ? .3 : 0)], [-L / 2 + .04, H - .1], [zr1, H], [zf1, H], [zf0, hoodH + .05], [L / 2 - .25, hoodH - .01], [L / 2 - .05, hoodH - .14], [L / 2, hoodH - .3]];
+  const topAt = z => { for (let i = 0; i < prof.length - 1; i++) { const [z0, y0] = prof[i], [z1, y1] = prof[i + 1]; if (z <= z1) return y0 + (y1 - y0) * Math.max(0, Math.min(1, (z - z0) / ((z1 - z0) || 1))); } return prof[prof.length - 1][1]; };
+  const N = Math.max(64, Math.round(L / .035));
+  const zs = [], tops = [];
+  for (let i = 0; i <= N; i++) { const z = -L / 2 + L * (1 - Math.cos(Math.PI * i / N)) / 2; zs.push(z); tops.push(topAt(z)); }
+  for (let pass = 0; pass < 2; pass++) for (let i = 1; i < N; i++) tops[i] = (tops[i - 1] + 2 * tops[i] + tops[i + 1]) / 4;
+  const boxy = ['kei', 'keivan', 'truck', 'tall', 'minivan', 'suvbox', 'van', 'wagon'].includes(P.name);
+  const tumble = boxy ? .07 : .15;
+  const KS1 = 8, KS2 = 8, TOPF = [.85, .6, .3, 0], JB = 3 + KS1, JT = 3 + KS1 + KS2;   // JB：窓の下の行、JT：窓の上の行
+  // 断面（右半分）：下の中心 → 下の角 → 側面 → 上の角 → 屋根の中心。k：0=下、1=側面、2=上の角、3=屋根
+  const sec = zs.map((z, i) => {
+    const e = L / 2 - Math.abs(z), R = z > 0 ? .5 : .4;
+    const pf = e >= R ? 1 : .52 + .48 * Math.sqrt(Math.max(0, 1 - ((R - e) / R) ** 2));
+    let b = cl + .1 + (e < .6 ? (.6 - e) * .3 : 0);
+    // タイヤの上は車体の下端をアーチ状に上げる（ホイールアーチ）
+    for (const za of axles) { const ar = r * 1.16, dz = z - za; if (Math.abs(dz) < ar) b = Math.max(b, r + Math.sqrt(ar * ar - dz * dz) * .92); }
+    const hwP = W / 2 * pf, top = Math.max(b + .25, tops[i]);
+    const hw = y => hwP * (y > belt ? 1 - tumble * Math.min(1, (y - belt) / Math.max(.2, H - belt)) : 1);
+    const rb = .08, rt = Math.min(.14, (top - b) * .22), pts = [];
+    pts.push([0, b, 0]);
+    for (let j = 1; j <= 3; j++) { const a = -Math.PI / 2 + Math.PI / 2 * j / 3; pts.push([hwP - rb + rb * Math.cos(a), b + rb + rb * Math.sin(a), 0]); }
+    const yb = Math.max(b + rb + .05, Math.min(belt + .03, top - rt - .03));
+    for (let j = 1; j <= KS1; j++) { const y = b + rb + (yb - b - rb) * j / KS1; pts.push([hw(y), y, 1]); }
+    for (let j = 1; j <= KS2; j++) { const y = yb + (top - rt - .02 - yb) * j / KS2; pts.push([hw(y), y, 1]); }
+    const cx = hw(top - rt) - rt;
+    for (let j = 1; j <= 4; j++) { const a = Math.PI / 2 * j / 4; pts.push([cx + rt * Math.cos(a), top - rt + rt * Math.sin(a), 2]); }
+    for (const f of TOPF) pts.push([cx * f, top, 3]);
+    return { z, pts, top, b, hwP };
+  });
+  const Mn = sec[0].pts.length;
+  const zB = (Math.max(zr1, -L / 2 + .3) + zf1) / 2 + .12, pillars = [zB];
+  if (P.name === 'minivan' || P.name === 'van') pillars.push((zB + Math.max(zr1, -L / 2 + .2)) / 2 - .1);
+  const sideZ0 = P.deck ? zr0 + .25 : Math.max(-L / 2 + .14, zr1 - .05), sideZ1 = zf0 - .08;
+  // 四角（i：断面、j：断面の中の行）ごとに決める。0：塗装 1：ガラス 2：黒い樹脂 -1：穴（タイヤハウス）
+  const classify = (z, y, kmin, kmax, j, top) => {
+    if (kmax === 0) return 2;
+    if (top > belt + .15) {
+      if (kmin === 3 && z > zf1 + .02 && z < zf0 - .03) return 1;                                    // フロントガラス
+      if (kmin === 3 && z < zr1 - .03 && z > (P.deck ? zr0 + .05 : -L / 2 + .03)) return 1;           // リアガラス
+      if (kmax <= 1 && j >= JB && j < JT && z > sideZ0 && z < sideZ1 && !pillars.some(zp => Math.abs(z - zp) < .045)) return 1; // 横の窓
+    }
+    if (P.clad && kmax <= 1 && y < cl + .3) return 2;
+    return 0;
+  };
+  const build = sign => {
+    const pos = [], idx = [[], [], []];
+    sec.forEach(s => s.pts.forEach(([x, y]) => pos.push(sign * x, y, s.z + zoff)));
+    for (let i = 0; i < sec.length - 1; i++) for (let j = 0; j < Mn - 1; j++) {
+      const a = i * Mn + j, b = a + 1, c = a + Mn, d = c + 1;
+      const ps = [sec[i].pts[j], sec[i].pts[j + 1], sec[i + 1].pts[j], sec[i + 1].pts[j + 1]];
+      const z = (sec[i].z + sec[i + 1].z) / 2, y = ps.reduce((s2, q) => s2 + q[1], 0) / 4;
+      const kmin = Math.min(...ps.map(q => q[2])), kmax = Math.max(...ps.map(q => q[2]));
+      const cl2 = classify(z, y, kmin, kmax, j, (sec[i].top + sec[i + 1].top) / 2);
+      if (cl2 < 0) continue;
+      for (const tri of [[a, b, c], [b, d, c]]) idx[cl2].push(...(sign > 0 ? tri : [tri[0], tri[2], tri[1]]));
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    const all = idx[0].concat(idx[1], idx[2]);
+    geo.setIndex(all);
+    geo.addGroup(0, idx[0].length, 0); geo.addGroup(idx[0].length, idx[1].length, 1); geo.addGroup(idx[0].length + idx[1].length, idx[2].length, 2);
+    geo.computeVertexNormals();
+    g.add(mesh(geo, [M3.paint, M3.glass, M3.trim]));
+  };
+  build(1); build(-1);
+  // 前後の面（輪になった断面をふさぐ）
+  for (const [si, back] of [[0, true], [sec.length - 1, false]]) {
+    const s = sec[si], ring = s.pts.map(([x, y]) => [x, y]).concat(s.pts.slice(1, -1).reverse().map(([x, y]) => [-x, y]));
+    const cy = ring.reduce((a, p) => a + p[1], 0) / ring.length;
+    const pos = [], idx = [[], []];
+    pos.push(0, cy, s.z + zoff); ring.forEach(([x, y]) => pos.push(x, y, s.z + zoff));
+    for (let k = 0; k < ring.length; k++) {
+      const a = k + 1, b = (k + 1) % ring.length + 1, y = (ring[k][1] + ring[(k + 1) % ring.length][1] + cy) / 3;
+      const glassy = back && P.rearTop < .2 && y > belt + .06 && y < s.top - .08 && Math.abs(ring[k][0]) < s.hwP * .85 && !rearOpen;
+      idx[glassy ? 1 : 0].push(0, a, b);
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx[0].concat(idx[1])); geo.addGroup(0, idx[0].length, 0); geo.addGroup(idx[0].length, idx[1].length, 1); geo.computeVertexNormals();
+    g.add(mesh(geo, [M3.paintD, M3.glassD]));
+  }
+  return { belt, hoodH, zf0: zf0 + zoff, zf1: zf1 + zoff, front: L / 2 + zoff, back: -L / 2 + zoff };
+}
+function carMesh(g, it, W, L, H, c) {
+  const car = CARS[it.model], bodyName = car ? car.body : 'sedan';
+  const P = Object.assign({ name: bodyName, clad: ['suv', 'suvbox'].includes(bodyName) }, CAR_BODIES[bodyName] || CAR_BODIES.sedan);
+  const M3 = { paint: paintMat(c), paintD: paintMat(c, true), glass: mat('#11171d', { metalness: .9, roughness: .05, envMapIntensity: 2.2 }), glassD: mat('#11171d', { metalness: .9, roughness: .05, envMapIntensity: 2.2, side: THREE.DoubleSide }), trim: mat('#1a1b1d', { roughness: .75 }) };
+  const r = P.r, fa = L / 2 - Math.max(.65, L * .19), ra = -L / 2 + Math.max(.55, L * .17);
+  let info;
   if (P.bed) {
     // 軽トラック：運転席＋荷台
-    const cabL = L - P.bed;
-    const cab = [[L / 2 - cabL, cl + .1], [L / 2 - cabL, H - .03], [L / 2 - .4, H], [L / 2 - .08, belt + .05], [L / 2, hoodH - .2], [L / 2, cl + .1]];
-    side(cab, W - .1, paint);
-    side([[L / 2 - cabL + .08, belt + .03], [L / 2 - cabL + .1, H - .08], [L / 2 - .42, H - .06], [L / 2 - .1, belt + .03]], W - .06, glassM);
-    B(g, W - .04, .05, P.bed, 0, cl + .45, -L / 2 + P.bed / 2, paint);
-    for (const sx of [-1, 1]) B(g, .04, .3, P.bed, sx * (W / 2 - .04), cl + .5, -L / 2 + P.bed / 2, paint);
-    B(g, W - .04, .3, .04, 0, cl + .5, -L / 2 + .02, paint);
-    B(g, W - .04, .55, .04, 0, cl + .45, L / 2 - cabL - .02, '#333');
-  } else {
-    const pts = [[-L / 2, cl + .12]];
-    if (P.deck) pts.push([-L / 2, belt - .08], [-L / 2 + .1, belt + .02], [zr0, belt + .04]);
-    else pts.push([-L / 2, belt], [-L / 2 + .02, H - .12]);
-    pts.push([zr1, H], [zf1, H], [zf0, hoodH + .04], [L / 2 - .15, hoodH - .04], [L / 2, hoodH - .26], [L / 2, cl + .12]);
-    side(pts, W - .1, paint);
-    // 窓（屋根の線に沿わせ、前後のガラスも見えるようにする）
-    const gz0 = P.deck ? zr0 + .04 : -L / 2 + .05;
-    side([[gz0, belt + .03], [zr1 + .02, H - .05], [zf1 - .01, H - .05], [zf0 - .05, Math.max(belt, hoodH) + .03]], W - .06, glassM);
-  }
-  // タイヤ
-  const fa = L / 2 - Math.max(.65, L * .19), ra = -L / 2 + Math.max(.55, L * .17);
+    const Lc = L - P.bed;
+    info = carBody(g, Lc, W, H, Object.assign({}, P, { hood: .2, rear: .02, rearTop: .05 }), L / 2 - Lc / 2, M3, [fa - (L / 2 - Lc / 2)], r, false);
+    const bz = -L / 2 + P.bed / 2, by = P.cl + .42;
+    B(g, W - .04, .05, P.bed, 0, by, bz, M3.paint);
+    for (const sx of [-1, 1]) B(g, .04, .32, P.bed, sx * (W / 2 - .02), by, bz, M3.paint);
+    B(g, W - .04, .32, .04, 0, by, -L / 2 + .02, M3.paint);
+    B(g, W - .04, .65, .05, 0, by, -L / 2 + P.bed - .02, '#2a2a2a');
+    B(g, W - .1, .12, P.bed - .1, 0, P.cl + .25, bz, M3.trim);
+  } else info = carBody(g, L, W, H, P, 0, M3, [fa, ra], r, false);
+  // タイヤ（丸みのある肩）＋5本スポークのホイール＋タイヤハウス
+  const tw = .21;
+  const tireGeo = new THREE.LatheGeometry([[r * .63, -tw / 2], [r - .035, -tw / 2], [r, -tw / 2 + .035], [r, tw / 2 - .035], [r - .035, tw / 2], [r * .63, tw / 2]].map(([x, y]) => new THREE.Vector2(x, y)), 28);
+  const tireM = mat('#161616', { roughness: .92 }), rimM = mat('#c3c6c9', { metalness: .85, roughness: .28 }), wellM = mat('#0d0d0d', { roughness: 1, side: THREE.DoubleSide });
   for (const sx of [-1, 1]) for (const z of [fa, ra]) {
-    const w = mesh(new THREE.CylinderGeometry(r, r, .24, 22), mat('#191919', { roughness: .9 })); w.rotation.z = Math.PI / 2; w.position.set(sx * (W / 2 - .1), r, z); g.add(w);
-    const hub = mesh(new THREE.CylinderGeometry(r * .6, r * .6, .25, 16), mat('#b9bcbf', { metalness: .8, roughness: .3 })); hub.rotation.z = Math.PI / 2; hub.position.copy(w.position); g.add(hub);
+    const x = sx * (W / 2 - .13);
+    const t = mesh(tireGeo, tireM); t.rotation.z = Math.PI / 2; t.position.set(x, r, z); g.add(t);
+    const rim = mesh(new THREE.CylinderGeometry(r * .63, r * .63, tw * .8, 24), mat('#2a2b2d', { metalness: .6, roughness: .4 })); rim.rotation.z = Math.PI / 2; rim.position.set(x, r, z); g.add(rim);
+    const face = x + sx * tw * .41;
+    for (let k = 0; k < 5; k++) {
+      const a = k * Math.PI * 2 / 5, sp = mesh(new THREE.BoxGeometry(.03, r * .56, .06), rimM);
+      sp.position.set(face, r + Math.cos(a) * r * .3, z + Math.sin(a) * r * .3); sp.rotation.x = a; g.add(sp);
+    }
+    const ring = mesh(new THREE.TorusGeometry(r * .6, .022, 6, 24), rimM); ring.rotation.y = Math.PI / 2; ring.position.set(face, r, z); g.add(ring);
+    const hub = mesh(new THREE.CylinderGeometry(r * .14, r * .14, .02, 12), rimM); hub.rotation.z = Math.PI / 2; hub.position.set(face + sx * .01, r, z); g.add(hub);
   }
-  // ライト
+  // ライト・グリル・ナンバー・ミラー・取っ手（一般的な形）
+  const front = info.front, back = info.back, hl = mat('#f2f4f6', { emissive: '#4a4c4e', metalness: .3, roughness: .1 }), tl = mat('#b0201b', { emissive: '#4a0806', roughness: .2 });
   for (const sx of [-1, 1]) {
-    B(g, .24, .07, .03, sx * (W / 2 - .26), hoodH - .17, L / 2 + .02, mat('#f4f1e6', { emissive: '#3a352a' }));
-    B(g, .2, .08, .03, sx * (W / 2 - .22), (P.deck ? belt - .2 : belt - .12), -L / 2 - .02, mat('#a8241e', { emissive: '#3a0a08' }));
+    const h = B(g, W * .2, .07, .05, sx * W * .31, info.hoodH - .19, front - .07, hl); h.rotation.y = sx * .35;
+    const tail = B(g, W * .24, .065, .05, sx * W * .32, (P.deck ? info.belt - .16 : info.belt - .1), back + .06, tl); tail.rotation.y = -sx * .35;
+    B(g, .2, .11, .09, sx * (W / 2 + .06), info.belt + .06, info.zf0 - .1, M3.paint);
+    for (const dz of [.25, -.55]) B(g, .015, .025, .14, sx * (W / 2 - .005), info.belt - .1, info.zf1 + dz, '#9a9da0');
   }
+  B(g, W * .44, .16, .04, 0, P.cl + .3, front - .02, mat('#151618', { roughness: .5, metalness: .4 }));
+  const plateC = ['kei', 'keivan', 'truck'].includes(bodyName) ? '#f2cf2e' : '#f5f5f0';
+  B(g, .33, .165, .015, 0, P.cl + .12, front + .005, plateC);
+  B(g, .33, .165, .015, 0, (P.deck ? info.belt - .38 : info.belt - .32), back - .005, plateC);
+  // 車の下のやわらかい影
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(W * 1.25, L * 1.1), carShadow()); sh.rotation.x = -Math.PI / 2; sh.position.y = .006; g.add(sh);
 }
 
 // 木の葉：小さな葉のかたまりを、だ円体の中にちらして重ねる（同じ木は毎回同じ形）
