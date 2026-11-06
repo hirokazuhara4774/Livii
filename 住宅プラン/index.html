@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Livii 住宅プラン</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">Livii 住宅プラン <small>間取り・外構・3Dパース</small></div>
+    <div class="plan-pick">
+      <select id="planSel" aria-label="プランを選ぶ"></select>
+      <button class="btn primary" id="bNew">＋ 新規</button>
+      <button class="btn" id="bDup">複製</button>
+      <button class="btn danger" id="bDel">削除</button>
+      <button class="btn" id="bExport">書き出し</button>
+      <label class="btn" style="margin:0">読み込み<input type="file" id="fImport" accept=".json,application/json" hidden></label>
+      <button class="btn" id="bPrint">図面を印刷・PDF</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button data-tab="plan" aria-selected="true">間取り（平面図）</button>
+    <button data-tab="site">外構図</button>
+    <button data-tab="ext3d">3D外観パース</button>
+    <button data-tab="int3d">3D内観</button>
+    <button data-tab="set">物件・設定</button>
+  </nav>
+</header>
+
+<main class="app">
+
+<!-- 間取り -->
+<section class="tab ed on" id="tab-plan">
+  <aside class="tools">
+    <div class="tg">
+      <div class="tl">階</div>
+      <div class="seg" id="floorSeg"></div>
+      <div class="row"><button class="btn sm" id="bAddFloor">＋ 階を追加</button><button class="btn sm danger" id="bDelFloor">この階を削除</button></div>
+    </div>
+    <div class="tg">
+      <div class="tl">描く</div>
+      <div class="tools-grid">
+        <button class="tool" data-tool="select">選択・移動</button>
+        <button class="tool" data-tool="room">部屋</button>
+        <button class="tool" data-tool="wall">壁</button>
+      </div>
+      <label class="f">次に描く部屋<select id="roomNameSel"></select></label>
+    </div>
+    <div class="tg">
+      <div class="tl">建具 <span>壁の上をクリック</span></div>
+      <div class="tools-grid" id="opTools"></div>
+    </div>
+    <div class="tg">
+      <div class="tl">家具・設備 <span>置きたい場所をクリック</span></div>
+      <div class="tools-grid" id="fuTools"></div>
+    </div>
+    <div class="tg">
+      <div class="tl">表示</div>
+      <label class="f">マス目（スナップ）<select class="gridSel">
+        <option value="910">910（1マス）</option><option value="455" selected>455（半マス）</option><option value="100">100</option><option value="10">なし</option>
+      </select></label>
+      <div class="row"><button class="btn sm bFit">全体を表示</button><button class="btn sm bUndo">元に戻す</button><button class="btn sm bRedo">やり直す</button></div>
+    </div>
+  </aside>
+  <div class="stage"><canvas id="cvPlan"></canvas><div class="hud" id="hudPlan"></div></div>
+  <aside class="props" id="propsPlan"></aside>
+</section>
+
+<!-- 外構図 -->
+<section class="tab ed" id="tab-site">
+  <aside class="tools">
+    <div class="tg">
+      <div class="tl">ツール</div>
+      <div class="tools-grid"><button class="tool" data-tool="select">選択・移動</button></div>
+    </div>
+    <div class="tg">
+      <div class="tl">外構 <span>置きたい場所をクリック</span></div>
+      <div class="tools-grid" id="exTools"></div>
+    </div>
+    <div class="tg">
+      <div class="tl">表示</div>
+      <label class="f">マス目（スナップ）<select class="gridSel">
+        <option value="910">910（1マス）</option><option value="455" selected>455（半マス）</option><option value="100">100</option><option value="10">なし</option>
+      </select></label>
+      <div class="row"><button class="btn sm bFit">全体を表示</button><button class="btn sm bUndo">元に戻す</button><button class="btn sm bRedo">やり直す</button></div>
+      <p class="hint">敷地の大きさ・道路の向きは「物件・設定」で変えます。建物は「間取り」で描いた部屋から自動で表示されます。</p>
+    </div>
+  </aside>
+  <div class="stage"><canvas id="cvSite"></canvas><div class="hud" id="hudSite"></div></div>
+  <aside class="props" id="propsSite"></aside>
+</section>
+
+<!-- 3D外観 -->
+<section class="tab v3" id="tab-ext3d">
+  <div class="bar3">
+    <div class="grp"><span class="lb">視点</span>
+      <button class="btn sm" data-view="SE">南東</button><button class="btn sm" data-view="SW">南西</button>
+      <button class="btn sm" data-view="NE">北東</button><button class="btn sm" data-view="NW">北西</button>
+      <button class="btn sm" data-view="S">正面（南）</button><button class="btn sm" data-view="TOP">真上</button>
+    </div>
+    <div class="grp"><span class="lb">表示</span><select id="upToSel"></select></div>
+    <div class="grp"><span class="lb">日当たり</span>
+      <select id="seasonSel"><option value="summer">夏至</option><option value="equinox" selected>春分・秋分</option><option value="winter">冬至</option></select>
+      <input type="range" id="hourRng" min="6" max="18" step="0.5" value="10"><span id="hourLbl" class="num">10:00</span>
+    </div>
+    <div class="grp"><button class="btn sm" id="bShot1">画像を保存</button></div>
+  </div>
+  <div class="stage3" id="host-ext"></div>
+  <p class="hint help3">ドラッグで回す・右ドラッグ（2本指）で移動・ホイール（ピンチ）で拡大縮小・ダブルクリックでその点を中心にする。南を上から見て北緯33°（熊本）で影を計算しています。</p>
+</section>
+
+<!-- 3D内観 -->
+<section class="tab v3" id="tab-int3d">
+  <div class="bar3">
+    <div class="grp"><span class="lb">階</span><select id="walkFloorSel"></select></div>
+    <div class="grp"><span class="lb">部屋へ移動</span><select id="walkRoomSel"></select></div>
+    <div class="grp"><span class="lb">時刻</span><input type="range" id="hourRng2" min="6" max="18" step="0.5" value="10"><span id="hourLbl2" class="num">10:00</span></div>
+    <div class="grp"><button class="btn sm" id="bShot2">画像を保存</button></div>
+  </div>
+  <div class="stage3" id="host-int">
+    <div class="pad" id="walkPad">
+      <button data-mv="f" aria-label="前へ">▲</button>
+      <button data-mv="l" aria-label="左を向く">◀</button>
+      <button data-mv="b" aria-label="後ろへ">▼</button>
+      <button data-mv="r" aria-label="右を向く">▶</button>
+    </div>
+  </div>
+  <p class="hint help3">ドラッグで見回す・W/S（↑/↓）で前後、A/D で横歩き、←/→ で向きを変える。スマホは右下のボタンで歩きます。壁はすり抜けます。</p>
+</section>
+
+<!-- 設定 -->
+<section class="tab doc" id="tab-set">
+  <div class="doc-in">
+    <div class="card">
+      <h2>物件情報</h2>
+      <div class="grid">
+        <label class="f">プラン名<input type="text" data-s="name"></label>
+        <label class="f">お客様名<input type="text" data-s="client"></label>
+        <label class="f">担当<input type="text" data-s="staff"></label>
+        <label class="f">作成日<input type="date" data-s="createdOn"></label>
+      </div>
+      <label class="f" style="margin-top:10px">メモ<textarea data-s="memo" rows="2"></textarea></label>
+    </div>
+    <div class="card">
+      <h2>敷地 <span class="sub">長さはすべて mm（1マス＝910mm）</span></h2>
+      <div class="grid">
+        <label class="f">間口（東西）<div class="u"><input type="number" data-s="site.w" step="10"><span>mm</span></div></label>
+        <label class="f">奥行（南北）<div class="u"><input type="number" data-s="site.d" step="10"><span>mm</span></div></label>
+        <label class="f">道路の向き<select data-s="site.road"><option value="S">南</option><option value="N">北</option><option value="E">東</option><option value="W">西</option></select></label>
+        <label class="f">道路の幅員<div class="u"><input type="number" data-s="site.roadW" step="100"><span>mm</span></div></label>
+      </div>
+      <p class="hint" id="siteCalc"></p>
+    </div>
+    <div class="card">
+      <h2>建物の高さ</h2>
+      <div class="grid">
+        <label class="f">基礎の高さ（地面〜1階の床）<div class="u"><input type="number" data-s="baseH" step="10"><span>mm</span></div></label>
+      </div>
+      <div id="floorHeights"></div>
+    </div>
+    <div class="card">
+      <h2>屋根</h2>
+      <div class="grid">
+        <label class="f">形<select data-s="roof.type"><option value="gable">切妻</option><option value="hip">寄棟</option><option value="shed">片流れ</option><option value="flat">陸屋根（フラット）</option></select></label>
+        <label class="f">勾配<div class="u"><input type="number" data-s="roof.pitch" step="0.5" min="0.5" max="10"><span>寸</span></div></label>
+        <label class="f">軒の出<div class="u"><input type="number" data-s="roof.overhang" step="50" min="0"><span>mm</span></div></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="chk"><input type="checkbox" data-s="roof.rotate">棟の向きを90°回す</label>
+        <label class="chk"><input type="checkbox" data-s="roof.flip">片流れの高い側を反対にする</label>
+      </div>
+      <p class="hint">屋根は一番上の階の部屋に自動でかかります。上の階がない1階部分には下屋（片流れ・平屋根）が自動でかかります。</p>
+    </div>
+    <div class="card">
+      <h2>色</h2>
+      <div class="row" id="schemeBtns"></div>
+      <div class="grid" style="margin-top:12px">
+        <label class="f">外壁<input type="color" data-s="colors.extWall"></label>
+        <label class="f">屋根<input type="color" data-s="colors.roof"></label>
+        <label class="f">サッシ<input type="color" data-s="colors.sash"></label>
+        <label class="f">室内の壁<input type="color" data-s="colors.intWall"></label>
+        <label class="f">天井<input type="color" data-s="colors.ceiling"></label>
+        <label class="f">室内ドア<input type="color" data-s="colors.door"></label>
+        <label class="f">敷地（土）<input type="color" data-s="colors.ground"></label>
+      </div>
+      <p class="hint">床の色は部屋ごとに「間取り」で部屋を選んで変えます。家具・外構の色も選んだものごとに変えられます。</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<datalist id="roomNames"></datalist>
+<div id="printArea"></div>
+<div id="toast" role="status"></div>
+
+<script src="lib/three.min.js"></script>
+<script src="app.js"></script>
+<script src="view3d.js"></script>
+<script>startApp();</script>
+</body>
+</html>
