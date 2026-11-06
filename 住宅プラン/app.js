@@ -133,7 +133,7 @@ const EXT = {
   gardenSet:  { cat: 4, label: 'ガーデンテーブルセット', w: 1500, d: 1500, h: 720, color: '#4a4a48' },
   parasol:    { cat: 4, label: 'パラソル',             w: 2400, d: 2400, h: 2400, color: '#e9e3d6', round: 1 },
   bench:      { cat: 4, label: 'ベンチ',               w: 1500, d: 500,  h: 800,  color: '#8a6b4f' },
-  car:        { cat: 4, label: '車（参考）',           w: 1700, d: 4500, h: 1500, color: '#8796a8' },
+  car:        { cat: 4, label: '車（トヨタ車）',       w: 1695, d: 3940, h: 1500, color: '#f1f0ec' },
   bike:       { cat: 4, label: '自転車',               w: 600,  d: 1800, h: 1000, color: '#3b5f8a' },
 };
 const ROOM_NAMES = ['LDK', 'リビング', 'ダイニング', 'キッチン', '洋室', '和室', '主寝室', '子ども部屋1', '子ども部屋2', '書斎',
@@ -278,7 +278,7 @@ function fillSample(p) {
     E('block', 10465, 18140, 0, { w: 10010, h: 600 }), E('gatepost', 5860, 17700),
     E('storage', 14105, 910), E('tree', 14378, 13650), E('tree', 728, 2730, 0, { w: 1600, d: 1600, h: 3200 }),
     E('conifer', 14560, 4500), E('shrub', 6300, 17650), E('shrub', 14100, 17600), E('shrub', 12900, 17650),
-    E('car', 1365, 16380), E('car', 4095, 16380, 0, { color: '#c9c9c6' }),
+    E('car', 1365, 16380, 0, { model: 'harrier', w: 1855, d: 4740, h: 1660, color: '#1d1e20' }), E('car', 4095, 16380, 0, { model: 'pixis_epoch', w: 1475, d: 3395, h: 1500, color: '#f1f0ec' }),
     E('funcpost', 2900, 13500), E('poleLight', 1000, 11000), E('poleLight', 1000, 8200),
     E('stepping', 13300, 15200, 90, { w: 2400 }), E('outdoorUnit', 11300, 4550 - 250, 0), E('heater', 6200, 4550 - 420, 0),
     E('gardenSet', 13200, 17000), E('flowers', 9555, 13450, 0, { w: 3640, d: 400 }),
@@ -494,9 +494,25 @@ function drawScene(ctx, W, H, v, p, mode, fi, ui = {}) {
     for (let x = wx0; x <= wx1; x += step) { ctx.strokeStyle = (Math.round(x) % 910 === 0) ? '#e4e2da' : '#efeee8'; ctx.beginPath(); ctx.moveTo(Math.round(X(x)) + .5, 0); ctx.lineTo(Math.round(X(x)) + .5, H); ctx.stroke(); }
     for (let y = wy0; y <= wy1; y += step) { ctx.strokeStyle = (Math.round(y) % 910 === 0) ? '#e4e2da' : '#efeee8'; ctx.beginPath(); ctx.moveTo(0, Math.round(Y(y)) + .5); ctx.lineTo(W, Math.round(Y(y)) + .5); ctx.stroke(); }
   }
+  // 下図（測量図・敷地図）
+  if (mode === 'site' || ui.underlayAll) drawUnderlay(ctx, v, p);
   // 敷地境界
   ctx.strokeStyle = '#c0504d'; ctx.lineWidth = 1.4; ctx.setLineDash([12, 4, 2, 4]);
-  ctx.strokeRect(X(0), Y(0), L(st.w), L(st.d)); ctx.setLineDash([]);
+  if (st.poly && st.poly.length >= 3) {
+    ctx.beginPath(); st.poly.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+    if (mode === 'site') {
+      // 辺の長さ（m）と境界点
+      ctx.font = '11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      st.poly.forEach(([x1, y1], i) => {
+        const [x2, y2] = st.poly[(i + 1) % st.poly.length], len = Math.hypot(x2 - x1, y2 - y1);
+        ctx.fillStyle = '#c0504d'; ctx.fillRect(X(x1) - 3, Y(y1) - 3, 6, 6);
+        if (L(len) < 40) return;
+        let a = Math.atan2(y2 - y1, x2 - x1); if (a > Math.PI / 2 || a < -Math.PI / 2) a += Math.PI;
+        ctx.save(); ctx.translate(X((x1 + x2) / 2), Y((y1 + y2) / 2)); ctx.rotate(a); ctx.fillStyle = '#9a3b38'; ctx.fillText((len / 1000).toFixed(3), 0, -3); ctx.restore();
+      });
+    }
+  } else ctx.strokeRect(X(0), Y(0), L(st.w), L(st.d));
+  ctx.setLineDash([]);
   if (mode === 'site') drawSite(ctx, W, H, v, p, ui); else drawPlan(ctx, W, H, v, p, fi, ui);
   ctx.restore();
 }
@@ -669,7 +685,7 @@ function drawItem(ctx, v, it, isExt, faint) {
   ctx.stroke(); ctx.setLineDash([]);
   ctx.restore();
   // 名前（回転しない）
-  const lab = short(c.label);
+  const lab = it.type === 'car' && CARS[it.model] ? CARS[it.model].name.replace(/（.*）/, '') : short(c.label);
   const fs = clamp(Math.min(w, d) * .28, 0, 12);
   if (fs >= 8 && !['fence', 'block', 'hedge', 'carport', 'carport2', 'cycleport', 'terraceRoof', 'pergola'].includes(T) && Math.max(w, d) > lab.length * fs * .9) {
     ctx.save(); if (faint) ctx.globalAlpha = .35;
@@ -809,6 +825,15 @@ function drawSel(ctx, v, ui) {
     }
     ctx.setLineDash([]);
   }
+  if (ui.preview && (ui.preview.kind === 'poly' || ui.preview.kind === 'cal')) {
+    const q = ui.preview, pts = q.pts;
+    ctx.strokeStyle = q.kind === 'cal' ? '#2a78d6' : '#c0504d'; ctx.lineWidth = 2;
+    ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle;
+    pts.forEach(([x, y], i) => { if (i < pts.length - (q.kind === 'cal' && pts.length === 1 ? 0 : 1) || q.kind === 'cal') ctx.fillRect(X(x) - 4, Y(y) - 4, 8, 8); });
+    if (q.kind === 'poly' && pts.length > 1) { const [x0, y0] = pts[0]; ctx.beginPath(); ctx.arc(X(x0), Y(y0), 9, 0, 7); ctx.stroke(); }
+    if (pts.length > 1) { const [a, b] = [pts[pts.length - 2], pts[pts.length - 1]]; labelAt(ctx, X((a[0] + b[0]) / 2), Y((a[1] + b[1]) / 2) - 12, [(Math.hypot(b[0] - a[0], b[1] - a[1]) / 1000).toFixed(2) + ' m'], 12, ctx.strokeStyle); }
+  }
   const s = ui.selObj;
   if (!s) return;
   ctx.strokeStyle = ACC; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
@@ -840,6 +865,7 @@ class Editor {
     cv.addEventListener('pointerup', e => this.up(e));
     cv.addEventListener('pointercancel', e => this.up(e));
     cv.addEventListener('contextmenu', e => e.preventDefault());
+    cv.addEventListener('dblclick', () => { if (this.tool === 'bd:draw') this.finishBoundary(); });
     cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); this.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * .0015)); }, { passive: false });
     new ResizeObserver(() => this.resize()).observe(cv.parentElement);
   }
@@ -856,6 +882,12 @@ class Editor {
     if (!this.W) return;
     const p = plan(), st = p.site, m = 2600;
     let bb = { x: -m, y: -m, w: st.w + 2 * m, d: st.d + 2 * m };
+    if (this.mode === 'site' && p.underlay && p.underlay.show) {
+      const u = p.underlay, uw = u.pw * u.mmpp, uh = u.ph * u.mmpp;
+      const cs = [[0, 0], [uw, 0], [uw, uh], [0, uh]].map(([x, y]) => { const [rx, ry] = rotPt(x, y, u.rot || 0); return [u.x + rx, u.y + ry]; });
+      const x0 = Math.min(bb.x, ...cs.map(c => c[0])), y0 = Math.min(bb.y, ...cs.map(c => c[1])), x1 = Math.max(bb.x + bb.w, ...cs.map(c => c[0])), y1 = Math.max(bb.y + bb.d, ...cs.map(c => c[1]));
+      bb = { x: x0, y: y0, w: x1 - x0, d: y1 - y0 };
+    }
     if (this.mode === 'plan') {
       const b = bboxOf(p.floors.flatMap(f => f.rooms));
       if (b) bb = { x: b.x - 2800, y: b.y - 2800, w: b.w + 4400, d: b.d + 4400 };
@@ -908,7 +940,7 @@ class Editor {
     return i < 0 ? null : { i, cs };
   }
   setTool(t) {
-    this.tool = t; this.preview = null;
+    this.tool = t; this.preview = null; this.calPts = []; this.bdPts = []; this.bdScreen = [];
     const host = this.cv.closest('section');
     host.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
     this.cv.style.cursor = t === 'select' ? 'default' : 'crosshair';
@@ -919,6 +951,9 @@ class Editor {
     const t = this.tool;
     el.textContent = msg || (t === 'room' ? 'ドラッグで部屋の四角を描きます（マス目に合わせます）'
       : t === 'wall' ? 'ドラッグで壁を描きます（水平・垂直）'
+      : t === 'ul:cal' ? '下図の上で、長さがわかっている2点（境界点など）をクリック → 実際の長さを入れます'
+      : t === 'ul:move' ? '下図をドラッグして、敷地や建物に重ねます'
+      : t === 'bd:draw' ? '敷地の角を順にクリック。最初の点をクリック（またはダブルクリック）で閉じます'
       : t.startsWith('op:') ? '取り付ける壁の上をクリック'
       : (t.startsWith('fu:') || t.startsWith('ex:')) ? '置きたい場所をクリック'
       : 'クリックで選択・ドラッグで移動・角の□で大きさを変更。何もない所のドラッグで画面移動、ホイールで拡大縮小');
@@ -938,6 +973,33 @@ class Editor {
       const a = { x: this.snap(w.x), y: this.snap(w.y) };
       this.drag = { kind: t, a, b: a }; return;
     }
+    if (t === 'ul:move') {
+      if (!p.underlay) { toast('先に PDF・画像を読み込んでください'); return; }
+      this.drag = { kind: 'ulmove', sx: e.clientX, sy: e.clientY, ox: p.underlay.x, oy: p.underlay.y, moved: false }; return;
+    }
+    if (t === 'ul:cal') {
+      if (!p.underlay) { toast('先に PDF・画像を読み込んでください'); return; }
+      this.calPts = (this.calPts || []).concat([[w.x, w.y]]);
+      if (this.calPts.length === 2) {
+        const [[ax, ay], [bx, by]] = this.calPts, dist = Math.hypot(bx - ax, by - ay);
+        this.calPts = []; this.preview = null;
+        const ans = prompt('2点の間の実際の長さを mm で入れてください（例：12345）', Math.round(dist));
+        const real = num(ans, 0);
+        if (real > 0 && dist > 0) {
+          const k = real / dist, ul = p.underlay; pushUndo();
+          ul.mmpp *= k; ul.x = ax + (ul.x - ax) * k; ul.y = ay + (ul.y - ay) * k; ul.scaleNote = '2点で合わせた';
+          this.setTool('select'); commit(); toast('縮尺を合わせました');
+        } else this.draw();
+      } else this.draw();
+      return;
+    }
+    if (t === 'bd:draw') {
+      const pt = [Math.round(w.x / 10) * 10, Math.round(w.y / 10) * 10];
+      const bp = this.bdPts = this.bdPts || [];
+      if (bp.length >= 3 && Math.hypot(e.clientX - this.bdScreen[0][0], e.clientY - this.bdScreen[0][1]) < 12) { this.finishBoundary(); return; }
+      bp.push(pt); (this.bdScreen = this.bdScreen || []).push([e.clientX, e.clientY]);
+      this.preview = { kind: 'poly', pts: bp.concat([pt]) }; this.draw(); return;
+    }
     if (t.startsWith('op:')) {
       const o = mkOpening(t.slice(3), 'h', 0, 0);
       if (!attachOpening(f, o, w.x, w.y)) { toast('近くに壁がありません。先に部屋を描いてください'); return; }
@@ -947,9 +1009,14 @@ class Editor {
       const isExt = t.startsWith('ex:'), type = t.slice(3);
       const it = mkItem(isExt ? EXT : FURN, type, Math.round(w.x / 50) * 50, Math.round(w.y / 50) * 50);
       if (type === 'stairs') it.h = f.h;
+      if (type === 'car') it.model = 'yaris';
       pushUndo(); (isExt ? p.ext : f.items).push(it); this.select({ kind: isExt ? 'ext' : 'item', id: it.id }); this.setTool('select'); commit(); return;
     }
-    // 選択ツール
+    // 選択ツール：敷地境界の点を動かす
+    if (this.mode === 'site' && p.site.poly) {
+      const tol = 9 / this.v.s, vi = p.site.poly.findIndex(([x, y]) => Math.abs(x - w.x) < tol && Math.abs(y - w.y) < tol);
+      if (vi >= 0) { this.drag = { kind: 'vertex', i: vi, moved: false }; return; }
+    }
     const h = this.handleAt(w);
     if (h) { this.drag = { kind: 'resize', h, orig: JSON.parse(JSON.stringify(this.obj())), moved: false }; return; }
     const hit = this.pick(w);
@@ -960,7 +1027,19 @@ class Editor {
   move(e) {
     if (this.ptrs.has(e.pointerId)) this.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const d = this.drag;
+    if (!d && (this.tool === 'bd:draw' || this.tool === 'ul:cal')) {
+      const w = this.pt(e), list = this.tool === 'bd:draw' ? (this.bdPts || []) : (this.calPts || []);
+      if (list.length) { this.preview = { kind: this.tool === 'bd:draw' ? 'poly' : 'cal', pts: list.concat([[w.x, w.y]]) }; this.draw(); }
+      return;
+    }
     if (!d) return;
+    if (d.kind === 'ulmove' || d.kind === 'vertex') {
+      const p = plan(), w = this.pt(e);
+      if (!d.moved) { pushUndo(); d.moved = true; }
+      if (d.kind === 'ulmove') { p.underlay.x = d.ox + (e.clientX - d.sx) / this.v.s; p.underlay.y = d.oy + (e.clientY - d.sy) / this.v.s; }
+      else p.site.poly[d.i] = [Math.round(w.x / 10) * 10, Math.round(w.y / 10) * 10];
+      this.draw(); return;
+    }
     if (d.kind === 'pinch') {
       if (this.ptrs.size < 2) return;
       const [a, b] = [...this.ptrs.values()];
@@ -1055,8 +1134,21 @@ class Editor {
       return;
     }
     if ((d.kind === 'move' || d.kind === 'resize') && d.moved) { this.hud(); commit(); }
+    if (d.kind === 'ulmove' && d.moved) commit();
+    if (d.kind === 'vertex' && d.moved) { const p = plan(), ox = p.site.poly[0][0]; normalizeSite(p); this.fitted = true; commit(); }
   }
   select(sel) { this.sel = sel; renderProps(this); this.draw(); }
+  finishBoundary() {
+    const bp = this.bdPts || [];
+    this.bdPts = []; this.bdScreen = []; this.preview = null;
+    // ダブルクリックで同じ点が2回入ったら除く
+    const pts = bp.filter((q, i) => i === 0 || Math.hypot(q[0] - bp[i - 1][0], q[1] - bp[i - 1][1]) > 50);
+    if (pts.length < 3) { toast('3点以上クリックしてください'); this.draw(); return; }
+    const p = plan(); pushUndo();
+    p.site.poly = pts; normalizeSite(p);
+    this.setTool('select'); commit(); renderSettings();
+    toast(`敷地境界を作りました（${siteArea(p.site).toFixed(2)}㎡）`);
+  }
   del() {
     if (!this.sel) return;
     const arr = this.list(this.sel.kind), i = arr.findIndex(o => o.id === this.sel.id);
@@ -1144,6 +1236,8 @@ function renderProps(ed) {
     h = `<h3>${esc(c.label)}</h3><div class="stack">
       <div class="pg"><label class="f">幅 mm${nIn('w', o.w, 10, 'min="20"')}</label><label class="f">奥行 mm${nIn('d', o.d, 10, 'min="20"')}</label>
       <label class="f">高さ mm${nIn('h', o.h, 10, 'min="0"')}</label><label class="f">向き（度）${nIn('rot', o.rot, 15)}</label></div>
+      ${o.type === 'car' ? `<div class="prod"><label class="f">車種（トヨタ）<select data-car="1"><option value="">指定なし</option>${carOptions(o.model)}</select></label>
+        <div class="sws">${swatchBtns('color', CAR_COLORS, 'data-sw')}</div><p class="hint">寸法（全長×全幅×全高）はカタログの目安です。</p></div>` : ''}
       ${productSel(o)}
       ${k === 'ext' && c.mat ? matSel('仕上げ', 'mat', PAVINGS, o.mat || c.mat) : ''}
       <label class="f">色<input type="color" data-k="color" value="${o.color || c.color}"></label>
@@ -1181,6 +1275,12 @@ function renderProps(ed) {
     if (o2.type === 'deck' && name.includes('リウッド')) o2.mat = 'yk_deck';
     if (o2.type === 'approach' && name.includes('サルト')) o2.mat = col[0] === 'グレー' ? 'ty_salto_gy' : 'ty_salto';
   };
+  host.querySelectorAll('[data-car]').forEach(el => el.addEventListener('change', () => {
+    const o2 = ed.obj(); if (!o2) return; pushUndo();
+    const cc = CARS[el.value];
+    if (cc) Object.assign(o2, { model: el.value, w: cc.W, d: cc.L, h: cc.H }); else delete o2.model;
+    commit();
+  }));
   host.querySelectorAll('[data-prod]').forEach(el => el.addEventListener('change', () => { const o2 = ed.obj(); if (!o2) return; pushUndo(); setProd(o2, el.value); commit(); }));
   host.querySelectorAll('[data-prodc]').forEach(el => el.addEventListener('change', () => { const o2 = ed.obj(); if (!o2 || !o2.product) return; pushUndo(); const i = PRODUCTS[o2.type].findIndex(([m, n]) => m === o2.product.maker && n === o2.product.name); setProd(o2, i, el.value); commit(); }));
   host.querySelectorAll('[data-pcs]').forEach(b => b.addEventListener('click', () => { const o2 = ed.obj(); if (!o2 || !o2.product) return; pushUndo(); const i = PRODUCTS[o2.type].findIndex(([m, n]) => m === o2.product.maker && n === o2.product.name); setProd(o2, i, b.title); commit(); }));
@@ -1192,6 +1292,34 @@ function renderProps(ed) {
     const a = b.dataset.act;
     if (a === 'del') ed.del(); else if (a === 'rot') ed.rotate(); else if (a === 'dup') ed.duplicate();
     else if (a === 'walk') { const r = ed.obj(); showTab('int3d'); getView().goRoom(r, ed.fi); syncWalkSel(ed.fi, r.id); }
+  }));
+  host.querySelectorAll('[data-sv]').forEach(b => b.addEventListener('click', () => {
+    const a = b.dataset.sv, p = plan();
+    if (a === 'close') { surveyRes = null; renderProps(ed); }
+    if ((a === 'rotL' || a === 'rotR') && p.underlay) {
+      // 下図の中心を軸に回す
+      const ul = p.underlay, w = ul.pw * ul.mmpp, h = ul.ph * ul.mmpp, r0 = (ul.rot || 0) * Math.PI / 180;
+      const cx = ul.x + (w / 2) * Math.cos(r0) - (h / 2) * Math.sin(r0), cy = ul.y + (w / 2) * Math.sin(r0) + (h / 2) * Math.cos(r0);
+      ul.rot = (((ul.rot || 0) + (a === 'rotL' ? -90 : 90)) % 360 + 360) % 360;
+      const r1 = ul.rot * Math.PI / 180;
+      ul.x = cx - (w / 2) * Math.cos(r1) + (h / 2) * Math.sin(r1); ul.y = cy - (w / 2) * Math.sin(r1) - (h / 2) * Math.cos(r1);
+      commit(); return;
+    }
+    if (a === 'ulDel') { if (!confirm('下図を消しますか？')) return; pushUndo(); delete p.underlay; commit(); }
+    if (a === 'poly' && surveyRes) {
+      pushUndo(); applySitePoly(p, coordsToPoly(surveyRes.parsed.points));
+      if (p.underlay && surveyRes.parsed.scale && p.underlay.paperMmPerPx) p.underlay.mmpp = p.underlay.paperMmPerPx * surveyRes.parsed.scale;
+      ed.fitted = false; ed.fit(); commit(); renderSettings(); toast(`敷地を作りました（${siteArea(p.site).toFixed(2)}㎡）。下図は「下図を動かす」で重ねてください`);
+    }
+  }));
+  host.querySelectorAll('[data-ul]').forEach(el => el.addEventListener(el.type === 'range' ? 'input' : 'change', () => {
+    const ul = plan().underlay; if (!ul) return;
+    const k = el.dataset.ul;
+    if (k === 'show') ul.show = el.checked;
+    if (k === 'opacity') ul.opacity = +el.value;
+    if (k === 'rot') ul.rot = num(el.value, 0);
+    if (k === 'scale' && +el.value) { const cx = ul.x + ul.pw * ul.mmpp / 2, cy = ul.y + ul.ph * ul.mmpp / 2; ul.mmpp = ul.paperMmPerPx * +el.value; ul.x = cx - ul.pw * ul.mmpp / 2; ul.y = cy - ul.ph * ul.mmpp / 2; }
+    save(); ed.draw();
   }));
   host.querySelectorAll('tr[data-room]').forEach(tr => tr.addEventListener('click', () => ed.select({ kind: 'room', id: tr.dataset.room })));
 }
@@ -1235,11 +1363,39 @@ function productTable(p) {
     ${pl.filter(o => !seen.has(o.no) && seen.add(o.no)).map(o => `<tr><td><span class="no">${o.no}</span>${esc(o.where)}</td><td>${esc(o.text)}</td></tr>`).join('')}</table>
     <p class="hint">外構・家具を選んで「商品（メーカー）」を選ぶとここに出ます。色・品番は各社の最新カタログで確認してください。</p>`;
 }
+let surveyRes = null;   // 最後に読み取った結果
+function surveyPanel(p) {
+  let h = '';
+  const r = surveyRes;
+  if (r) {
+    const pr = r.parsed;
+    h += `<h3>読み取り結果 <span class="hint">${esc(r.name)}${r.pages > 1 ? `（${r.pages}ページ中1ページ目）` : ''}</span></h3>`;
+    if (pr.points.length >= 3) {
+      const poly = coordsToPoly(pr.points), a = polyArea(poly) / 1e6;
+      h += `<table><tr><th>点</th><th class="r">X</th><th class="r">Y</th></tr>${pr.points.map(q => `<tr><td>${esc(q.name)}</td><td class="r">${q.X.toFixed(3)}</td><td class="r">${q.Y.toFixed(3)}</td></tr>`).join('')}</table>
+        <div class="calc">座標から計算した面積 <b>${a.toFixed(2)}㎡</b>${pr.area ? `<br>図面に書かれた地積 ${pr.area.toFixed(2)}㎡（差 ${(a - pr.area).toFixed(2)}㎡）` : ''}</div>
+        <div class="acts"><button class="btn sm primary" data-sv="poly">この座標で敷地を作る</button></div>`;
+    } else h += `<p class="hint">${r.isPdf && pr.lines ? '座標の表は見つかりませんでした。' : '文字を読み取れない図面（スキャン・写真）です。'}下図として表示しています。「2点で縮尺合わせ」→「下図を動かす」→「敷地境界をなぞる」で敷地を作れます。</p>`;
+    if (pr.area && pr.points.length < 3) h += `<p class="hint">図面の地積：${pr.area.toFixed(2)}㎡</p>`;
+    h += `<div class="acts"><button class="btn sm" data-sv="close">閉じる</button></div>`;
+  }
+  const ul = p.underlay;
+  if (ul) {
+    const den = ul.paperMmPerPx ? Math.round(ul.mmpp / ul.paperMmPerPx) : null;
+    h += `<h3>下図 <span class="hint">${esc(ul.name || '')}</span></h3><div class="stack">
+      <label class="chk"><input type="checkbox" data-ul="show"${ul.show ? ' checked' : ''}>表示する</label>
+      <label class="f">濃さ<input type="range" min="0.1" max="1" step="0.05" value="${ul.opacity ?? .6}" data-ul="opacity"></label>
+      ${ul.paperMmPerPx ? `<label class="f">図面の縮尺（用紙どおりの大きさの PDF）<select data-ul="scale">${[50, 100, 150, 200, 250, 300, 400, 500, 600, 1000].map(n => `<option value="${n}"${n === den ? ' selected' : ''}>1/${n}</option>`).join('')}${[50, 100, 150, 200, 250, 300, 400, 500, 600, 1000].includes(den) ? '' : '<option selected>（2点で合わせた）</option>'}</select></label>` : '<p class="hint">写真・画像は「2点で縮尺合わせ」で大きさを合わせてください。</p>'}
+      <label class="f">回転（度）<span class="msel"><input type="number" step="0.5" value="${ul.rot || 0}" data-ul="rot"><button class="btn sm" data-sv="rotL">↺90°</button><button class="btn sm" data-sv="rotR">↻90°</button></span></label>
+      <div class="acts"><button class="btn sm danger" data-sv="ulDel">下図を消す</button></div></div>`;
+  }
+  return h;
+}
 function siteSummary() {
-  const p = plan(), st = p.site, sa = st.w * st.d / 1e6;
+  const p = plan(), st = p.site, sa = siteArea(st);
   const foot = areaOf(rectsOf(p.floors.flatMap(f => f.rooms.filter(isIn))));
   const total = p.floors.reduce((s, q) => s + floorArea(q), 0);
-  return `<h3>敷地と建物</h3>
+  return `${surveyPanel(p)}<h3>敷地と建物</h3>
     <table>
     <tr><td>敷地面積</td><td class="r">${sa.toFixed(2)}㎡</td><td class="r">${(sa / TSUBO).toFixed(2)}坪</td></tr>
     <tr><td>建築面積</td><td class="r">${foot.toFixed(2)}㎡</td><td class="r">${(foot / TSUBO).toFixed(2)}坪</td></tr>
@@ -1360,8 +1516,10 @@ function renderSettings() {
   });
   $('#cuList').innerHTML = (p.customMats || []).map(m => `<div class="cu"><img src="${m.img}" alt=""><div><b>${esc(m.maker || '取り込み')}</b> ${esc(m.series || '')} ${esc(m.label)}<br><span class="hint">${CUSTOM_CATS[m.cat][0]}・実寸 ${fmt(m.w)}×${fmt(m.h)}mm</span></div><button class="btn sm danger" data-cudel="${m.id}">削除</button></div>`).join('') || '<p class="hint">まだありません。</p>';
   $$('[data-cudel]').forEach(b => b.onclick = () => { if (!confirm('この材料を削除しますか？（使っている所は標準の材料に戻ります）')) return; pushUndo(); const p2 = plan(); p2.customMats = p2.customMats.filter(m => m.id !== b.dataset.cudel); registerCustoms(p2); ensurePlan(p2); commit(); renderSettings(); });
-  const st = p.site, sa = st.w * st.d / 1e6;
+  const st = p.site, sa = siteArea(st);
   $('#siteCalc').textContent = `敷地面積 ${sa.toFixed(2)}㎡（${(sa / TSUBO).toFixed(2)}坪）`;
+  $('#sitePolyNote').innerHTML = st.poly ? `<div class="calc" style="margin-top:8px">敷地は測量図・なぞった形（${st.poly.length}角形）です。間口・奥行は外形の大きさです。<button class="btn sm" id="bRectSite" style="margin-left:8px">形を消して四角に戻す</button></div>` : '';
+  if (st.poly) $('#bRectSite').onclick = () => { pushUndo(); delete plan().site.poly; commit(); renderSettings(); };
 }
 
 function exportJSON() {
@@ -1487,7 +1645,7 @@ function startApp() {
     const p = plan(), path = el.dataset.s;
     pushUndo();
     let v = el.type === 'checkbox' ? el.checked : el.type === 'number' ? num(el.value, getPath(p, path)) : el.value;
-    if (path === 'site.w' || path === 'site.d') v = clamp(v, 3000, 200000);
+    if (path === 'site.w' || path === 'site.d') { v = clamp(v, 3000, 200000); if (p.site.poly) { delete p.site.poly; toast('敷地の形を四角に戻しました'); } }
     if (path === 'roof.pitch') v = clamp(v, .5, 10);
     setPath(p, path, v);
     if (path === 'name' || path === 'client') renderPlanSel();
@@ -1538,6 +1696,26 @@ function startApp() {
   renderPlanSel(); renderFloorSeg(); renderSettings(); renderProps(edPlan); renderProps(edSite);
   showTab('plan');
   registerCustoms(plan()).then(() => { patCache.clear(); thumbCache.clear(); dirty3d = true; edPlan.draw(); edSite.draw(); });
+  // 測量図・敷地図の読み込み
+  $('#ulFile').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    toast('読み込んでいます…');
+    try {
+      const r = await readSurveyFile(f);
+      const p = plan(), st = p.site; pushUndo();
+      const den = r.parsed.scale || 200;
+      const mmpp = r.paperMmPerPx ? r.paperMmPerPx * den : Math.max(st.w, st.d) * 1.4 / Math.max(r.pw, r.ph);
+      p.underlay = { img: r.img, pw: r.pw, ph: r.ph, paperMmPerPx: r.paperMmPerPx, mmpp, rot: 0, opacity: .6, show: true, name: r.name, x: 0, y: 0 };
+      p.underlay.x = st.w / 2 - r.pw * mmpp / 2; p.underlay.y = st.d / 2 - r.ph * mmpp / 2;
+      surveyRes = r;
+      showTab('site'); edSite.select(null); commit();
+      edSite.fitted = false; edSite.fit();
+      toast(r.parsed.points.length >= 3 ? `座標を ${r.parsed.points.length} 点読み取りました。右の「この座標で敷地を作る」を押してください`
+        : r.paperMmPerPx ? `下図にしました（縮尺 1/${den}${r.parsed.scale ? '：図面から読み取り' : '：仮'}）。必要なら「2点で縮尺合わせ」をしてください`
+        : '下図にしました。「2点で縮尺合わせ」で大きさを合わせてください');
+    } catch (err) { console.error(err); toast('読み込めませんでした：' + err.message); }
+  };
   // テクスチャ画像の取り込み
   $('#cuAdd').onclick = () => {
     const f = $('#cuFile').files[0];

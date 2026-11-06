@@ -531,24 +531,7 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
     }
     case 'parasol': cyl(.02, H, 0, 0, 0, '#777'); { const m = mesh(new THREE.ConeGeometry(W / 2, .5, 8, 1, true), mat(c, { side: THREE.DoubleSide })); m.position.set(0, H - .2, 0); g.add(m); } cyl(.2, .05, 0, 0, 0, '#555', 16); break;
     case 'bench': B(g, W, .05, D * .8, 0, .42, D * .1, texMat('woodV', c, {}, .01)); B(g, W, .35, .04, 0, .5, -D / 2 + .02, texMat('woodV', c, {}, .01)); legs(W, D * .8, .42, 0, D * .1, '#333', .05); break;
-    case 'car': {
-      const L = D, Hh = H, side = (pts, depth, m, x0 = 0) => {
-        const sh = new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(z, y)));
-        const geo = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: .04, bevelSize: .04, bevelSegments: 3, curveSegments: 6 });
-        geo.translate(0, 0, -depth / 2); geo.rotateY(-Math.PI / 2);
-        const m2 = mesh(geo, m); m2.position.x = x0; g.add(m2); return m2;
-      };
-      const body = [[-L / 2, .3], [-L / 2, .85], [-L / 2 + .12, .97], [-L / 2 + .55, 1.0], [-L / 2 + .95, Hh], [L * .12, Hh], [L * .28, .98], [L / 2 - .2, .86], [L / 2, .72], [L / 2, .3]];
-      side(body, W - .1, mat(c, { metalness: .5, roughness: .28, envMapIntensity: 1.3 }));
-      const glass = [[-L / 2 + .62, 1.0], [-L / 2 + .97, Hh - .05], [L * .1, Hh - .05], [L * .25, 1.0]];
-      side(glass, W - .06, mat('#1d262e', { metalness: .6, roughness: .1, envMapIntensity: 1.8 }));
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        const w = mesh(new THREE.CylinderGeometry(.32, .32, .22, 20), mat('#191919', { roughness: .9 })); w.rotation.z = Math.PI / 2; w.position.set(sx * (W / 2 - .12), .32, sz * (L / 2 - .78)); g.add(w);
-        const hub = mesh(new THREE.CylinderGeometry(.19, .19, .23, 16), mat('#b9bcbf', { metalness: .8, roughness: .3 })); hub.rotation.z = Math.PI / 2; hub.position.copy(w.position); g.add(hub);
-      }
-      for (const sx of [-1, 1]) { B(g, .22, .06, .03, sx * (W / 2 - .25), .78, L / 2 + .01, mat('#f4f1e6', { emissive: '#3a352a' })); B(g, .22, .06, .03, sx * (W / 2 - .25), .82, -L / 2 - .01, mat('#a8241e', { emissive: '#3a0a08' })); }
-      break;
-    }
+    case 'car': carMesh(g, it, W, D, H, c); break;
     case 'bike': {
       for (const sz of [-1, 1]) { const w = mesh(new THREE.TorusGeometry(.33, .025, 8, 24), mat('#1b1b1b')); w.rotation.y = Math.PI / 2; w.position.set(0, .35, sz * .5); g.add(w); }
       const fr = (z0, y0, z1, y1) => { const l = Math.hypot(z1 - z0, y1 - y0), m = mesh(new THREE.BoxGeometry(.03, .03, l), mat(c)); m.position.set(0, (y0 + y1) / 2, (z0 + z1) / 2); m.rotation.x = -Math.atan2(y1 - y0, z1 - z0); g.add(m); };
@@ -559,6 +542,52 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
     default: B(g, W, H, D, 0, 0, 0, c);
   }
   return g;
+}
+
+// 車：車の種類ごとの横から見た形を押し出して作る（前は +z）
+function carMesh(g, it, W, L, H, c) {
+  const car = CARS[it.model], P = CAR_BODIES[car ? car.body : 'sedan'] || CAR_BODIES.sedan;
+  const side = (pts, depth, m) => {
+    const sh = new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(z, y)));
+    const geo = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: .04, bevelSize: .04, bevelSegments: 3, curveSegments: 6 });
+    geo.translate(0, 0, -depth / 2); geo.rotateY(-Math.PI / 2);
+    const m2 = mesh(geo, m); g.add(m2); return m2;
+  };
+  const r = P.r, cl = P.cl, belt = Math.min(P.belt, H - .3), hoodH = Math.min(P.hoodH, belt + .05);
+  const zr0 = -L / 2 + P.rear, zr1 = -L / 2 + P.rearTop, zf0 = L / 2 - P.hood, zf1 = Math.max(zr1 + .4, zf0 - P.ws);
+  const paint = mat(c, { metalness: .5, roughness: .28, envMapIntensity: 1.3 });
+  const glassM = mat('#1d262e', { metalness: .6, roughness: .1, envMapIntensity: 1.8 });
+  if (P.bed) {
+    // 軽トラック：運転席＋荷台
+    const cabL = L - P.bed;
+    const cab = [[L / 2 - cabL, cl + .1], [L / 2 - cabL, H - .03], [L / 2 - .4, H], [L / 2 - .08, belt + .05], [L / 2, hoodH - .2], [L / 2, cl + .1]];
+    side(cab, W - .1, paint);
+    side([[L / 2 - cabL + .08, belt + .03], [L / 2 - cabL + .1, H - .08], [L / 2 - .42, H - .06], [L / 2 - .1, belt + .03]], W - .06, glassM);
+    B(g, W - .04, .05, P.bed, 0, cl + .45, -L / 2 + P.bed / 2, paint);
+    for (const sx of [-1, 1]) B(g, .04, .3, P.bed, sx * (W / 2 - .04), cl + .5, -L / 2 + P.bed / 2, paint);
+    B(g, W - .04, .3, .04, 0, cl + .5, -L / 2 + .02, paint);
+    B(g, W - .04, .55, .04, 0, cl + .45, L / 2 - cabL - .02, '#333');
+  } else {
+    const pts = [[-L / 2, cl + .12]];
+    if (P.deck) pts.push([-L / 2, belt - .08], [-L / 2 + .1, belt + .02], [zr0, belt + .04]);
+    else pts.push([-L / 2, belt], [-L / 2 + .02, H - .12]);
+    pts.push([zr1, H], [zf1, H], [zf0, hoodH + .04], [L / 2 - .15, hoodH - .04], [L / 2, hoodH - .26], [L / 2, cl + .12]);
+    side(pts, W - .1, paint);
+    // 窓（屋根の線に沿わせ、前後のガラスも見えるようにする）
+    const gz0 = P.deck ? zr0 + .04 : -L / 2 + .05;
+    side([[gz0, belt + .03], [zr1 + .02, H - .05], [zf1 - .01, H - .05], [zf0 - .05, Math.max(belt, hoodH) + .03]], W - .06, glassM);
+  }
+  // タイヤ
+  const fa = L / 2 - Math.max(.65, L * .19), ra = -L / 2 + Math.max(.55, L * .17);
+  for (const sx of [-1, 1]) for (const z of [fa, ra]) {
+    const w = mesh(new THREE.CylinderGeometry(r, r, .24, 22), mat('#191919', { roughness: .9 })); w.rotation.z = Math.PI / 2; w.position.set(sx * (W / 2 - .1), r, z); g.add(w);
+    const hub = mesh(new THREE.CylinderGeometry(r * .6, r * .6, .25, 16), mat('#b9bcbf', { metalness: .8, roughness: .3 })); hub.rotation.z = Math.PI / 2; hub.position.copy(w.position); g.add(hub);
+  }
+  // ライト
+  for (const sx of [-1, 1]) {
+    B(g, .24, .07, .03, sx * (W / 2 - .26), hoodH - .17, L / 2 + .02, mat('#f4f1e6', { emissive: '#3a352a' }));
+    B(g, .2, .08, .03, sx * (W / 2 - .22), (P.deck ? belt - .2 : belt - .12), -L / 2 - .02, mat('#a8241e', { emissive: '#3a0a08' }));
+  }
 }
 
 // 木の葉：小さな葉のかたまりを、だ円体の中にちらして重ねる（同じ木は毎回同じ形）
@@ -582,7 +611,11 @@ function buildHouse(p) {
   // 地面・敷地・道路
   const big = mesh(new THREE.PlaneGeometry(600, 600), mat('#aeb79d'), false);
   big.rotation.x = -Math.PI / 2; big.position.set(M(st.w / 2), -.03, M(st.d / 2)); root.add(big);
-  root.add(boxRect({ x: 0, y: 0, w: st.w, d: st.d }, -.03, 0, texMat('mortar', C.ground, { roughness: 1 }, .02), false));
+  if (st.poly && st.poly.length >= 3) {
+    const sh = new THREE.Shape(st.poly.map(([x, y]) => new THREE.Vector2(M(x), -M(y))));
+    const geo = new THREE.ShapeGeometry(sh); geo.rotateX(-Math.PI / 2);
+    const gm = mesh(geo, texMat('mortar', C.ground, { roughness: 1 }, .02), false); gm.position.y = -.004; gm.receiveShadow = true; root.add(gm);
+  } else root.add(boxRect({ x: 0, y: 0, w: st.w, d: st.d }, -.03, 0, texMat('mortar', C.ground, { roughness: 1 }, .02), false));
   const rr = roadRect(st);
   root.add(boxRect(rr, -.03, -.01, texMat('mortar', '#6f7174', { roughness: .95 }, .01), false));
   for (const it of p.ext) root.add(itemMesh(it, true, 0, 0, 0, X));

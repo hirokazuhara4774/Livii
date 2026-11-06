@@ -170,3 +170,54 @@ function optGroups(cat, cur) {
   for (const [k, m] of Object.entries(cat)) { const mk = m.maker || '一般（汎用）'; if (!g.has(mk)) g.set(mk, []); g.get(mk).push([k, m]); }
   return [...g].map(([mk, list]) => `<optgroup label="${esc(mk)}">${list.map(([k, m]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}</optgroup>`).join('');
 }
+
+/* ===== 車（トヨタ車）=====
+   寸法は全長×全幅×全高の目安（mm。グレード・年式で変わる）。形は車の種類ごとの簡単なシルエット。 */
+const CAR_CATS = ['軽自動車', '軽バン・軽トラック', 'コンパクトカー', 'ミニバン', 'セダン・ハッチバック', 'SUV', 'スポーツカー', '商用車'];
+const CARS = {
+  pixis_epoch:  { cat: 0, name: 'ピクシス エポック',          L: 3395, W: 1475, H: 1500, body: 'kei' },
+  pixis_van:    { cat: 1, name: 'ピクシス バン',              L: 3395, W: 1475, H: 1890, body: 'keivan' },
+  pixis_truck:  { cat: 1, name: 'ピクシス トラック',          L: 3395, W: 1475, H: 1780, body: 'truck' },
+  yaris:        { cat: 2, name: 'ヤリス',                     L: 3940, W: 1695, H: 1500, body: 'compact' },
+  aqua:         { cat: 2, name: 'アクア',                     L: 4050, W: 1695, H: 1485, body: 'compact' },
+  roomy:        { cat: 2, name: 'ルーミー',                   L: 3700, W: 1670, H: 1735, body: 'tall' },
+  sienta:       { cat: 3, name: 'シエンタ',                   L: 4260, W: 1695, H: 1695, body: 'minivan' },
+  noah:         { cat: 3, name: 'ノア',                       L: 4695, W: 1730, H: 1895, body: 'minivan' },
+  voxy:         { cat: 3, name: 'ヴォクシー',                 L: 4695, W: 1730, H: 1895, body: 'minivan' },
+  alphard:      { cat: 3, name: 'アルファード',               L: 4995, W: 1850, H: 1935, body: 'minivan' },
+  corolla:      { cat: 4, name: 'カローラ（セダン）',         L: 4495, W: 1745, H: 1435, body: 'sedan' },
+  prius:        { cat: 4, name: 'プリウス',                   L: 4600, W: 1780, H: 1430, body: 'fastback' },
+  crown:        { cat: 4, name: 'クラウン（クロスオーバー）', L: 4930, W: 1840, H: 1540, body: 'sedan' },
+  raize:        { cat: 5, name: 'ライズ',                     L: 3995, W: 1695, H: 1620, body: 'suv' },
+  yariscross:   { cat: 5, name: 'ヤリス クロス',              L: 4180, W: 1765, H: 1590, body: 'suv' },
+  corollacross: { cat: 5, name: 'カローラ クロス',            L: 4490, W: 1825, H: 1620, body: 'suv' },
+  rav4:         { cat: 5, name: 'RAV4',                       L: 4600, W: 1855, H: 1685, body: 'suv' },
+  harrier:      { cat: 5, name: 'ハリアー',                   L: 4740, W: 1855, H: 1660, body: 'suv' },
+  landcruiser:  { cat: 5, name: 'ランドクルーザー 300',       L: 4985, W: 1980, H: 1925, body: 'suvbox' },
+  gr86:         { cat: 6, name: 'GR86',                       L: 4265, W: 1775, H: 1310, body: 'sports' },
+  supra:        { cat: 6, name: 'GRスープラ',                 L: 4380, W: 1865, H: 1295, body: 'sports' },
+  gryaris:      { cat: 6, name: 'GRヤリス',                   L: 3995, W: 1805, H: 1455, body: 'compact' },
+  probox:       { cat: 7, name: 'プロボックス',               L: 4245, W: 1690, H: 1525, body: 'wagon' },
+  hiace:        { cat: 7, name: 'ハイエース（標準ボディ）',   L: 4695, W: 1695, H: 1980, body: 'van' },
+};
+const CAR_COLORS = [['ホワイトパール', '#f1f0ec'], ['ブラック', '#1d1e20'], ['シルバー', '#b8bcc0'], ['グレー', '#6e7276'], ['レッド', '#a3201e'], ['ブルー', '#2c4f86'], ['ベージュ', '#cdbb9a'], ['カーキ', '#6f6b55']];
+// 車の形（m）。cl：最低地上高、belt：窓の下の高さ、hood：ボンネットの長さ、hoodH：ボンネットの高さ
+// rear：後ろの窓が始まる位置（後端から）、rearTop：屋根が始まる位置（後端から）、ws：フロントガラスの水平の長さ、r：タイヤ半径
+const CAR_BODIES = {
+  kei:      { cl: .15, belt: .92, hood: .45, hoodH: .82, rear: .06, rearTop: .14, ws: .55, r: .28 },
+  keivan:   { cl: .16, belt: .98, hood: .22, hoodH: .9,  rear: .03, rearTop: .06, ws: .35, r: .27 },
+  truck:    { cl: .18, belt: .98, hood: .22, hoodH: .9,  rear: .03, rearTop: .06, ws: .35, r: .27, bed: 1.95 },
+  tall:     { cl: .15, belt: .95, hood: .5,  hoodH: .85, rear: .06, rearTop: .14, ws: .6,  r: .3 },
+  compact:  { cl: .14, belt: .9,  hood: .75, hoodH: .78, rear: .12, rearTop: .45, ws: .75, r: .31 },
+  minivan:  { cl: .15, belt: 1.0, hood: .65, hoodH: .95, rear: .06, rearTop: .14, ws: .7,  r: .32 },
+  sedan:    { cl: .14, belt: .88, hood: 1.05, hoodH: .78, rear: .75, rearTop: 1.35, ws: .8, r: .32, deck: 1 },
+  fastback: { cl: .13, belt: .86, hood: 1.0, hoodH: .74, rear: .25, rearTop: 1.45, ws: .9,  r: .32, deck: 1 },
+  suv:      { cl: .2,  belt: 1.02, hood: .95, hoodH: .98, rear: .12, rearTop: .4, ws: .75, r: .36 },
+  suvbox:   { cl: .23, belt: 1.12, hood: 1.0, hoodH: 1.1, rear: .05, rearTop: .1,  ws: .6,  r: .38 },
+  sports:   { cl: .11, belt: .78, hood: 1.25, hoodH: .7, rear: .3,  rearTop: 1.35, ws: .85, r: .32, deck: 1 },
+  wagon:    { cl: .15, belt: .9,  hood: .85, hoodH: .82, rear: .05, rearTop: .12, ws: .75, r: .3 },
+  van:      { cl: .18, belt: 1.1, hood: .05, hoodH: 1.05, rear: .03, rearTop: .05, ws: .25, r: .32 },
+};
+function carOptions(cur) {
+  return CAR_CATS.map((cn, i) => `<optgroup label="${esc(cn)}">${Object.entries(CARS).filter(([, c]) => c.cat === i).map(([k, c]) => `<option value="${k}"${k === cur ? ' selected' : ''}>トヨタ ${esc(c.name)}（${fmt(c.L)}×${fmt(c.W)}×${fmt(c.H)}）</option>`).join('')}</optgroup>`).join('');
+}

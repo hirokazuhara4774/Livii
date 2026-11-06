@@ -76,6 +76,16 @@
       <div class="tools-grid"><button class="tool" data-tool="select">選択・移動</button></div>
     </div>
     <div class="tg">
+      <div class="tl">測量図・敷地図 <span>PDF・画像</span></div>
+      <label class="btn sm" style="text-align:center">PDF・画像を読み込む<input type="file" id="ulFile" accept=".pdf,application/pdf,image/*" hidden></label>
+      <div class="tools-grid">
+        <button class="tool" data-tool="ul:cal">2点で縮尺合わせ</button>
+        <button class="tool" data-tool="ul:move">下図を動かす</button>
+        <button class="tool" data-tool="bd:draw">敷地境界をなぞる</button>
+      </div>
+      <p class="hint">読み込むと、文字の入った PDF は座標・地積・縮尺を自動で読み取ります。</p>
+    </div>
+    <div class="tg">
       <div class="tl">外構 <span>置きたい場所をクリック</span></div>
       <div id="exTools"></div>
     </div>
@@ -152,6 +162,7 @@
         <label class="f">道路の向き<select data-s="site.road"><option value="S">南</option><option value="N">北</option><option value="E">東</option><option value="W">西</option></select></label>
         <label class="f">道路の幅員<div class="u"><input type="number" data-s="site.roadW" step="100"><span>mm</span></div></label>
       </div>
+      <div id="sitePolyNote"></div>
       <p class="hint" id="siteCalc"></p>
     </div>
     <div class="card">
@@ -237,6 +248,7 @@
 <script src="lib/three.min.js"></script>
 <script src="materials.js"></script>
 <script src="products.js"></script>
+<script src="survey.js"></script>
 <script src="app.js"></script>
 <script src="view3d.js"></script>
 <script>startApp();</script>
