@@ -410,6 +410,8 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
     case 'handwash': B(g, W, .1, D, 0, .72, 0, '#a8835f'); cyl(.17, .1, 0, .82, .02, c, 20, .12); cyl(.01, .15, 0, .82, -D / 2 + .05, '#c8c8c6', 8); B(g, W * .8, .5, .02, 0, 1.0, -D / 2 + .01, '#cfdde6', { metalness: .5, roughness: .15 }); break;
     /* --- 和室・その他 --- */
     case 'zataku': B(g, W, .04, D, 0, H - .04, 0, c, { roughness: .4 }); legs(W, D, H - .04, 0, 0, c, .06); for (const sz of [-1, 1]) B(g, .55, .06, .55, 0, 0, sz * (D / 2 + .35), '#7a3b3b'); break;
+    case 'column': case 'columnBig': B(g, W, CEIL, D, 0, 0, 0, texMat('woodV', c, {}, .006)); break;
+    case 'columnR': cyl(W / 2, CEIL, 0, 0, 0, c, 20); break;
     case 'stairs': {
       const fhm = M(fh || it.h), n = Math.max(8, Math.round(fhm / .2)), rise = fhm / n, run = D / n;
       for (let i = 0; i < n; i++) B(g, W, rise * (i + 1), run, 0, 0, D / 2 - run * (i + .5), c);

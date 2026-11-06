@@ -84,6 +84,9 @@ const FURN = {
   shoes:     { cat: 4, label: '下駄箱',               w: 1200, d: 400,  h: 1000, color: '#ece6da' },
   shoesTall: { cat: 4, label: '下駄箱（トール）',     w: 900,  d: 400,  h: 2100, color: '#ece6da' },
   stairs:    { cat: 4, label: '階段（直階段）',       w: 780,  d: 3400, h: 2900, color: '#b48d67' },
+  column:    { cat: 4, label: '柱（120角）',          w: 120,  d: 120,  h: 2400, color: '#c49a6c', col: 1 },
+  columnBig: { cat: 4, label: '大黒柱（240角）',      w: 240,  d: 240,  h: 2400, color: '#8b6a4c', col: 1 },
+  columnR:   { cat: 4, label: '丸柱（φ150）',         w: 150,  d: 150,  h: 2400, color: '#e9e6df', col: 1, round: 1 },
 };
 // 外構（mat：仕上げ PAVINGS。round：上から見て丸い）
 const EXT_CATS = ['床・舗装', '塀・門まわり', 'カーポート・物置', '植栽', '設備・その他'];
@@ -222,7 +225,7 @@ function ensurePlan(p) {
   p.ext = p.ext || [];
   p.roof = Object.assign({ type: 'gable', pitch: 4, overhang: 600, rotate: false, flip: false }, p.roof || {});
   (p.floors || []).forEach(f => {
-    f.rooms = f.rooms || []; f.walls = f.walls || []; f.openings = f.openings || []; f.items = f.items || [];
+    f.rooms = f.rooms || []; f.walls = f.walls || []; f.openings = f.openings || []; f.items = f.items || []; f.hidden = f.hidden || [];
     f.rooms.forEach(r => { if (!FLOOR_MATS[r.floor]) r.floor = defaultFloor(r.name); });
   });
   p.ext.forEach(it => { if (EXT[it.type]?.mat && !PAVINGS[it.mat]) it.mat = EXT[it.type].mat; });
@@ -350,8 +353,9 @@ function deriveWalls(f) {
         if (onEdge) {
           const A = horiz ? roomAt(R, m, c - 1) : roomAt(R, c - 1, m);   // 上・左
           const B = horiz ? roomAt(R, m, c + 1) : roomAt(R, c + 1, m);   // 下・右
-          if (A && B) { if (A.name !== B.name) pc = { ext: false, inSign: 0 }; }
+          if (A && B) { if (A.name !== B.name && !(A.gid && A.gid === B.gid)) pc = { ext: false, inSign: 0 }; }
           else if (A || B) pc = { ext: true, inSign: horiz ? (B ? 1 : -1) : (A ? 1 : -1) };
+          if (pc && hiddenHas(f, horiz, c, a, b)) pc = null;   // 「壁を消す」で消した所
         }
         if (pc && cur && cur.ext === pc.ext && cur.inSign === pc.inSign && (horiz ? cur.x2 : cur.y2) === a) {
           if (horiz) cur.x2 = b; else cur.y2 = b;
@@ -365,6 +369,62 @@ function deriveWalls(f) {
   };
   scan(ys, xs, true);
   scan(xs, ys, false);
+  return out;
+}
+// 「壁を消す」で消した範囲（f.hidden）に入っているか
+function hiddenHas(f, horiz, c, a, b) {
+  return (f.hidden || []).some(h => horiz
+    ? h.y1 === h.y2 && h.y1 === c && Math.min(h.x1, h.x2) <= a + 1 && Math.max(h.x1, h.x2) >= b - 1
+    : h.x1 === h.x2 && h.x1 === c && Math.min(h.y1, h.y2) <= a + 1 && Math.max(h.y1, h.y2) >= b - 1);
+}
+// クリックした所の壁を、となり合う部屋の組み合わせが同じ範囲でまとめて返す（消すとき用）
+function wallSpanAt(f, x, y, tol) {
+  const R = f.rooms.filter(isIn); if (!R.length) return null;
+  const xs = uniq(R.flatMap(r => [r.x, r.x + r.w])), ys = uniq(R.flatMap(r => [r.y, r.y + r.d]));
+  let best = null;
+  const tryLine = (c, cuts, horiz, pos, dist) => {
+    if (dist > tol || (best && best.dist <= dist)) return;
+    const info = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const a = cuts[i], b = cuts[i + 1], m = (a + b) / 2;
+      const onEdge = R.some(r => horiz ? (r.y === c || r.y + r.d === c) && r.x <= a && r.x + r.w >= b : (r.x === c || r.x + r.w === c) && r.y <= a && r.y + r.d >= b);
+      const A = horiz ? roomAt(R, m, c - 1) : roomAt(R, c - 1, m), B = horiz ? roomAt(R, m, c + 1) : roomAt(R, c + 1, m);
+      const wall = onEdge && (A || B) && !(A && B && (A.name === B.name || (A.gid && A.gid === B.gid)));
+      info.push({ a, b, A, B, wall });
+    }
+    const k = info.findIndex(q => q.a <= pos && pos <= q.b);
+    if (k < 0 || !info[k].wall) return;
+    let s = k, e = k;
+    while (s > 0 && info[s - 1].wall && info[s - 1].A === info[k].A && info[s - 1].B === info[k].B) s--;
+    while (e < info.length - 1 && info[e + 1].wall && info[e + 1].A === info[k].A && info[e + 1].B === info[k].B) e++;
+    best = { dist, seg: horiz ? { x1: info[s].a, y1: c, x2: info[e].b, y2: c } : { x1: c, y1: info[s].a, x2: c, y2: info[e].b } };
+  };
+  for (const c of ys) tryLine(c, xs, true, x, Math.abs(y - c));
+  for (const c of xs) tryLine(c, ys, false, y, Math.abs(x - c));
+  return best && best.seg;
+}
+// 直角の多角形（折れ線で描いた部屋）を、なるべく大きな四角に分ける
+function pointInPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function polyToRects(poly) {
+  const xs = uniq(poly.map(p => p[0])), ys = uniq(poly.map(p => p[1])), cells = [];
+  for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++)
+    if (pointInPoly((xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2, poly)) cells.push({ x: xs[i], y: ys[j], w: xs[i + 1] - xs[i], d: ys[j + 1] - ys[j] });
+  return rectsOf(cells);
+}
+// 折れ線で描いた部屋（同じ gid の四角）をまとめて返す
+function roomGroupOf(f, r) { return r && r.gid ? f.rooms.filter(q => q.gid === r.gid) : r ? [r] : []; }
+// 四角の集まりの外まわりの線
+function boundarySegs(rects) {
+  const xs = uniq(rects.flatMap(r => [r.x, r.x + r.w])), ys = uniq(rects.flatMap(r => [r.y, r.y + r.d])), out = [];
+  for (const c of ys) for (let i = 0; i < xs.length - 1; i++) { const m = (xs[i] + xs[i + 1]) / 2; if (!!roomAt(rects, m, c - 1) !== !!roomAt(rects, m, c + 1)) out.push([xs[i], c, xs[i + 1], c]); }
+  for (const c of xs) for (let i = 0; i < ys.length - 1; i++) { const m = (ys[i] + ys[i + 1]) / 2; if (!!roomAt(rects, c - 1, m) !== !!roomAt(rects, c + 1, m)) out.push([c, ys[i], c, ys[i + 1]]); }
   return out;
 }
 function allWalls(f) {
@@ -454,7 +514,7 @@ function roomGroups(f) {
   const ov = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) > 0;
   const touch = (a, b) => ((a.x + a.w === b.x || b.x + b.w === a.x) && ov(a.y, a.y + a.d, b.y, b.y + b.d))
     || ((a.y + a.d === b.y || b.y + b.d === a.y) && ov(a.x, a.x + a.w, b.x, b.x + b.w));
-  for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) if (rs[i].name === rs[j].name && touch(rs[i], rs[j])) par[find(i)] = find(j);
+  for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) if ((rs[i].name === rs[j].name && touch(rs[i], rs[j])) || (rs[i].gid && rs[i].gid === rs[j].gid)) par[find(i)] = find(j);
   const m = new Map();
   rs.forEach((r, i) => { const k = find(i); if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
   return [...m.values()].map(list => {
@@ -595,14 +655,14 @@ function drawItem(ctx, v, it, isExt, faint) {
   ctx.lineWidth = 1;
   const col = it.color || c.color || '#999';
   if (c.round) {
-    ctx.fillStyle = hexA(col, .45); ctx.strokeStyle = hexA(col, .95);
+    ctx.fillStyle = c.col ? '#3d3c39' : hexA(col, .45); ctx.strokeStyle = c.col ? '#222' : hexA(col, .95);
     ctx.beginPath(); ctx.arc(0, 0, w / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    if (it.type !== 'shrub') { ctx.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * w / 2 * .8, Math.sin(a) * w / 2 * .8); } ctx.stroke(); }
+    if (it.type !== 'shrub' && !c.col) { ctx.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * w / 2 * .8, Math.sin(a) * w / 2 * .8); } ctx.stroke(); }
     ctx.restore(); return;
   }
   const pv = isExt && PAVINGS[it.mat || c.mat];
   if (isExt) { ctx.fillStyle = pv ? canvasPat(ctx, pv.pat, col, v.s * 1000, -w / 2, -d / 2) : hexA(col, c.flat ? .5 : .75); ctx.strokeStyle = shade(col, -.35); }
-  else { ctx.fillStyle = it.type === 'rug' ? hexA(col, .55) : '#ffffff'; ctx.strokeStyle = '#6a6964'; }
+  else { ctx.fillStyle = c.col ? '#3d3c39' : it.type === 'rug' ? hexA(col, .55) : '#ffffff'; ctx.strokeStyle = c.col ? '#222' : '#6a6964'; }
   if (['carport', 'carport2', 'cycleport', 'terraceRoof', 'pergola'].includes(it.type)) { ctx.fillStyle = hexA(col, .15); }
   if (c.above) { ctx.setLineDash([3, 3]); ctx.fillStyle = 'rgba(255,255,255,.6)'; }
   if (['stepping', 'flowers', 'sleepers'].includes(it.type)) ctx.fillStyle = 'rgba(0,0,0,0)';
@@ -611,7 +671,7 @@ function drawItem(ctx, v, it, isExt, faint) {
   ctx.strokeStyle = isExt ? hexA(col, 1) : '#6a6964';
   const T = it.type;
   ctx.beginPath();
-  if (!isExt && !['dining', 'dining2', 'dining6', 'roundtable', 'lowtable', 'sidetable', 'zataku', 'rug', 'plant', 'floorlamp', 'pendant', 'stairs', 'desk', 'stools', 'ottoman', 'islandFree'].includes(T)) { // 背面
+  if (!isExt && !['dining', 'dining2', 'dining6', 'roundtable', 'lowtable', 'sidetable', 'zataku', 'rug', 'plant', 'floorlamp', 'pendant', 'stairs', 'desk', 'stools', 'ottoman', 'islandFree', 'column', 'columnBig', 'columnR'].includes(T)) { // 背面
     ctx.lineWidth = 2.2; ctx.moveTo(-w / 2, -d / 2); ctx.lineTo(w / 2, -d / 2); ctx.stroke(); ctx.lineWidth = 1; ctx.beginPath();
   }
   if (T === 'stairs') {
@@ -722,6 +782,10 @@ function drawPlan(ctx, W, H, v, p, fi, ui) {
   }
   const walls = allWalls(f);
   drawWalls(ctx, v, walls, '#2b2b2b', '#55544f');
+  if (ui.tool === 'wallDel' || !ui.print) for (const h of (f.hidden || [])) {
+    ctx.strokeStyle = ui.tool === 'wallDel' ? '#c0504d' : 'rgba(85,84,79,.35)'; ctx.lineWidth = ui.tool === 'wallDel' ? 2 : 1; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(X(h.x1), Y(h.y1)); ctx.lineTo(X(h.x2), Y(h.y2)); ctx.stroke(); ctx.setLineDash([]);
+  }
   for (const o of f.openings) drawOpening(ctx, v, o, walls.find(s => opOnSeg(s, o)));
   for (const it of f.items) drawItem(ctx, v, it, false, false);
   // 部屋名
@@ -825,20 +889,22 @@ function drawSel(ctx, v, ui) {
     }
     ctx.setLineDash([]);
   }
-  if (ui.preview && (ui.preview.kind === 'poly' || ui.preview.kind === 'cal')) {
+  if (ui.preview && (ui.preview.kind === 'poly' || ui.preview.kind === 'cal' || ui.preview.kind === 'rpoly')) {
     const q = ui.preview, pts = q.pts;
-    ctx.strokeStyle = q.kind === 'cal' ? '#2a78d6' : '#c0504d'; ctx.lineWidth = 2;
+    ctx.strokeStyle = q.kind === 'cal' ? '#2a78d6' : q.kind === 'rpoly' ? ACC : '#c0504d'; ctx.lineWidth = 2;
+    if (q.kind === 'rpoly' && pts.length > 2) { ctx.fillStyle = hexA(ACC, .08); ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.closePath(); ctx.fill(); }
     ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.stroke();
     ctx.fillStyle = ctx.strokeStyle;
     pts.forEach(([x, y], i) => { if (i < pts.length - (q.kind === 'cal' && pts.length === 1 ? 0 : 1) || q.kind === 'cal') ctx.fillRect(X(x) - 4, Y(y) - 4, 8, 8); });
-    if (q.kind === 'poly' && pts.length > 1) { const [x0, y0] = pts[0]; ctx.beginPath(); ctx.arc(X(x0), Y(y0), 9, 0, 7); ctx.stroke(); }
-    if (pts.length > 1) { const [a, b] = [pts[pts.length - 2], pts[pts.length - 1]]; labelAt(ctx, X((a[0] + b[0]) / 2), Y((a[1] + b[1]) / 2) - 12, [(Math.hypot(b[0] - a[0], b[1] - a[1]) / 1000).toFixed(2) + ' m'], 12, ctx.strokeStyle); }
+    if ((q.kind === 'poly' || q.kind === 'rpoly') && pts.length > 1) { const [x0, y0] = pts[0]; ctx.beginPath(); ctx.arc(X(x0), Y(y0), 9, 0, 7); ctx.stroke(); }
+    if (pts.length > 1) { const [a, b] = [pts[pts.length - 2], pts[pts.length - 1]], len = Math.hypot(b[0] - a[0], b[1] - a[1]); labelAt(ctx, X((a[0] + b[0]) / 2), Y((a[1] + b[1]) / 2) - 12, [q.kind === 'rpoly' ? fmt(len) : (len / 1000).toFixed(2) + ' m'], 12, ctx.strokeStyle); }
   }
   const s = ui.selObj;
   if (!s) return;
   ctx.strokeStyle = ACC; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
   const hs = [];
-  if (s.kind === 'room') { const r = s.o; ctx.strokeRect(X(r.x), Y(r.y), L(r.w), L(r.d)); hs.push([r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.d], [r.x, r.y + r.d]); }
+  if (s.kind === 'room' && s.group && s.group.length > 1) { ctx.beginPath(); for (const [x1, y1, x2, y2] of boundarySegs(s.group)) { ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); } ctx.stroke(); }
+  else if (s.kind === 'room') { const r = s.o; ctx.strokeRect(X(r.x), Y(r.y), L(r.w), L(r.d)); hs.push([r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.d], [r.x, r.y + r.d]); }
   else if (s.kind === 'item' || s.kind === 'ext') {
     const cs = itemCorners(s.o); ctx.beginPath(); cs.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.closePath(); ctx.stroke();
     hs.push(...cs);
@@ -865,7 +931,7 @@ class Editor {
     cv.addEventListener('pointerup', e => this.up(e));
     cv.addEventListener('pointercancel', e => this.up(e));
     cv.addEventListener('contextmenu', e => e.preventDefault());
-    cv.addEventListener('dblclick', () => { if (this.tool === 'bd:draw') this.finishBoundary(); });
+    cv.addEventListener('dblclick', () => { if (this.tool === 'bd:draw') this.finishBoundary(); if (this.tool === 'roomPoly') this.finishRoomPoly(); });
     cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); this.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * .0015)); }, { passive: false });
     new ResizeObserver(() => this.resize()).observe(cv.parentElement);
   }
@@ -933,14 +999,14 @@ class Editor {
     const o = this.obj(); if (!o) return null;
     const tol = 9 / this.v.s, k = this.sel.kind;
     let cs = [];
-    if (k === 'room') cs = [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.d], [o.x, o.y + o.d]];
+    if (k === 'room') { if (roomGroupOf(this.floor, o).length > 1) return null; cs = [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.d], [o.x, o.y + o.d]]; }
     else if (k === 'item' || k === 'ext') cs = itemCorners(o);
     else if (k === 'wall') cs = [[o.x1, o.y1], [o.x2, o.y2]];
     const i = cs.findIndex(([x, y]) => Math.abs(x - w.x) < tol && Math.abs(y - w.y) < tol);
     return i < 0 ? null : { i, cs };
   }
   setTool(t) {
-    this.tool = t; this.preview = null; this.calPts = []; this.bdPts = []; this.bdScreen = [];
+    this.tool = t; this.preview = null; this.calPts = []; this.bdPts = []; this.bdScreen = []; this.rpPts = [];
     const host = this.cv.closest('section');
     host.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
     this.cv.style.cursor = t === 'select' ? 'default' : 'crosshair';
@@ -951,6 +1017,8 @@ class Editor {
     const t = this.tool;
     el.textContent = msg || (t === 'room' ? 'ドラッグで部屋の四角を描きます（マス目に合わせます）'
       : t === 'wall' ? 'ドラッグで壁を描きます（水平・垂直）'
+      : t === 'roomPoly' ? '部屋の角を順にクリック（マス目に合わせて縦・横に折れます）。最初の点をクリックかダブルクリックで閉じます'
+      : t === 'wallDel' ? '消したい壁をクリック（となりの部屋とつながります）。点線の所をもう一度クリックすると元に戻ります'
       : t === 'ul:cal' ? '下図の上で、長さがわかっている2点（境界点など）をクリック → 実際の長さを入れます'
       : t === 'ul:move' ? '下図をドラッグして、敷地や建物に重ねます'
       : t === 'bd:draw' ? '敷地の角を順にクリック。最初の点をクリック（またはダブルクリック）で閉じます'
@@ -977,6 +1045,23 @@ class Editor {
     if (t === 'room' || t === 'wall') {
       const a = { x: this.snap(w.x), y: this.snap(w.y) };
       this.drag = { kind: t, a, b: a }; return;
+    }
+    if (t === 'roomPoly') {
+      const rp = this.rpPts = this.rpPts || [], pt = this.orthoPt(w);
+      if (rp.length >= 3) { const [fx, fy] = rp[0]; if (Math.hypot(w.sx - (fx * this.v.s + this.v.ox), w.sy - (fy * this.v.s + this.v.oy)) < 14) { this.finishRoomPoly(); return; } }
+      const last = rp[rp.length - 1];
+      if (!last || last[0] !== pt[0] || last[1] !== pt[1]) rp.push(pt);
+      this.preview = { kind: 'rpoly', pts: rp.concat([pt]) }; this.draw(); return;
+    }
+    if (t === 'wallDel') {
+      const tol = Math.max(150, 10 / this.v.s);
+      f.hidden = f.hidden || [];
+      // 消した壁の上をクリックしたら元に戻す
+      const hi = f.hidden.findIndex(h => segDist(h, w.x, w.y) < tol);
+      if (hi >= 0) { pushUndo(); f.hidden.splice(hi, 1); commit(); toast('壁を元に戻しました'); return; }
+      const sp = wallSpanAt(f, w.x, w.y, tol);
+      if (!sp) { toast('部屋のまわりの壁の上をクリックしてください（自分で描いた壁は選んで削除します）'); return; }
+      pushUndo(); f.hidden.push(sp); commit(); toast('壁を消しました。もう一度クリックすると元に戻ります'); return;
     }
     if (t === 'ul:move') {
       if (!p.underlay) { toast('先に PDF・画像を読み込んでください'); return; }
@@ -1014,6 +1099,7 @@ class Editor {
       const isExt = t.startsWith('ex:'), type = t.slice(3);
       const it = mkItem(isExt ? EXT : FURN, type, Math.round(w.x / 50) * 50, Math.round(w.y / 50) * 50);
       if (type === 'stairs') it.h = f.h;
+      if (!isExt && FURN[type].col) { it.x = this.snap(w.x); it.y = this.snap(w.y); it.h = f.ceil; }
       if (type === 'car') it.model = 'yaris';
       pushUndo(); (isExt ? p.ext : f.items).push(it); this.select({ kind: isExt ? 'ext' : 'item', id: it.id }); this.setTool('select'); commit(); return;
     }
@@ -1032,6 +1118,11 @@ class Editor {
   move(e) {
     if (this.ptrs.has(e.pointerId)) this.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const d = this.drag;
+    if (!d && this.tool === 'roomPoly') {
+      const rp = this.rpPts || [];
+      if (rp.length) { this.preview = { kind: 'rpoly', pts: rp.concat([this.orthoPt(this.pt(e))]) }; this.draw(); }
+      return;
+    }
     if (!d && (this.tool === 'bd:draw' || this.tool === 'ul:cal')) {
       const w = this.pt(e), list = this.tool === 'bd:draw' ? (this.bdPts || []) : (this.calPts || []);
       if (list.length) { this.preview = { kind: this.tool === 'bd:draw' ? 'poly' : 'cal', pts: list.concat([[w.x, w.y]]) }; this.draw(); }
@@ -1082,7 +1173,12 @@ class Editor {
     const k = this.sel.kind, g = d.orig;
     if (d.kind === 'move') {
       const dx = w.x - d.start.x, dy = w.y - d.start.y;
-      if (k === 'room') { o.x = this.snap(g.x + dx); o.y = this.snap(g.y + dy); }
+      if (k === 'room') {
+        // 折れ線で描いた部屋は、まとめて動かす
+        if (!d.grp) d.grp = roomGroupOf(this.floor, o).map(r => ({ r, x: r.x, y: r.y }));
+        const ddx = this.snap(g.x + dx) - g.x, ddy = this.snap(g.y + dy) - g.y;
+        d.grp.forEach(q => { q.r.x = q.x + ddx; q.r.y = q.y + ddy; });
+      }
       else if (k === 'item' || k === 'ext') { const st = this.grid >= 455 ? 50 : this.grid; o.x = Math.round((g.x + dx) / st) * st; o.y = Math.round((g.y + dy) / st) * st; }
       else if (k === 'opening') { attachOpening(this.floor, o, w.x, w.y); }
       else if (k === 'wall') { const ddx = this.snap(dx), ddy = this.snap(dy); o.x1 = g.x1 + ddx; o.x2 = g.x2 + ddx; o.y1 = g.y1 + ddy; o.y2 = g.y2 + ddy; }
@@ -1168,11 +1264,38 @@ class Editor {
     if (!this.sel) return;
     const arr = this.list(this.sel.kind), i = arr.findIndex(o => o.id === this.sel.id);
     if (i < 0) return;
-    pushUndo(); arr.splice(i, 1); this.sel = null; commit();
+    pushUndo();
+    if (this.sel.kind === 'room' && arr[i].gid) { const gid = arr[i].gid; this.floor.rooms = this.floor.rooms.filter(r => r.gid !== gid); }
+    else arr.splice(i, 1);
+    this.sel = null; commit();
+  }
+  // 縦・横に折れるよう、ひとつ前の点にそろえる
+  orthoPt(w) {
+    const pt = [this.snap(w.x), this.snap(w.y)], rp = this.rpPts || [], last = rp[rp.length - 1];
+    if (last) { if (Math.abs(pt[0] - last[0]) >= Math.abs(pt[1] - last[1])) pt[1] = last[1]; else pt[0] = last[0]; }
+    return pt;
+  }
+  finishRoomPoly() {
+    let pts = (this.rpPts || []).slice();
+    this.rpPts = []; this.preview = null;
+    // 同じ点・一直線上の点を除き、最後の点から最初の点へ直角に戻す
+    pts = pts.filter((q, i) => i === 0 || q[0] !== pts[i - 1][0] || q[1] !== pts[i - 1][1]);
+    if (pts.length >= 2) { const l = pts[pts.length - 1], f0 = pts[0]; if (l[0] !== f0[0] && l[1] !== f0[1]) pts.push([l[0], f0[1]]); }
+    const clean = [];
+    pts.forEach((q, i) => { const a = pts[(i - 1 + pts.length) % pts.length], b = pts[(i + 1) % pts.length]; if (!((a[0] === q[0] && q[0] === b[0]) || (a[1] === q[1] && q[1] === b[1]))) clean.push(q); });
+    const rects = clean.length >= 4 ? polyToRects(clean) : [];
+    if (!rects.length || areaOf(rects) < .2) { toast('4つ以上の角をクリックして、部屋を囲んでください'); this.draw(); return; }
+    const name = $('#roomNameSel').value, gid = rects.length > 1 ? 'g' + uid() : undefined;
+    pushUndo();
+    const made = rects.map(r => { const o = { id: uid(), name, x: r.x, y: r.y, w: r.w, d: r.d, floor: defaultFloor(name) }; if (gid) o.gid = gid; if (defaultPaper(name)) o.paper = defaultPaper(name); return o; });
+    this.floor.rooms.push(...made);
+    this.select({ kind: 'room', id: made[0].id }); commit();
+    toast(`${name}（${(areaOf(rects) / TATAMI).toFixed(1)}帖）を作りました`);
   }
   rotate(deg = 90) {
     const o = this.obj(), k = this.sel?.kind;
     if (!o) return;
+    if (k === 'room' && roomGroupOf(this.floor, o).length > 1) return toast('折れ線の部屋は縦横を入れ替えられません');
     pushUndo();
     if (k === 'item' || k === 'ext') o.rot = ((o.rot + deg) % 360 + 360) % 360;
     else if (k === 'room') { const cx = o.x + o.w / 2, cy = o.y + o.d / 2; [o.w, o.d] = [o.d, o.w]; o.x = this.snap(cx - o.w / 2); o.y = this.snap(cy - o.d / 2); }
@@ -1182,6 +1305,10 @@ class Editor {
   duplicate() {
     const o = this.obj(), k = this.sel?.kind;
     if (!o || k === 'opening') return;
+    if (k === 'room' && o.gid) {
+      const gid = 'g' + uid(), cs = roomGroupOf(this.floor, o).map(r => Object.assign(JSON.parse(JSON.stringify(r)), { id: uid(), gid, x: r.x + 910, y: r.y + 910 }));
+      pushUndo(); this.floor.rooms.push(...cs); this.select({ kind: 'room', id: cs[0].id }); commit(); return;
+    }
     const c = JSON.parse(JSON.stringify(o)); c.id = uid();
     const off = k === 'room' ? 910 : 300;
     if (k === 'wall') { c.x1 += off; c.x2 += off; c.y1 += off; c.y2 += off; } else { c.x += off; c.y += off; }
@@ -1192,7 +1319,7 @@ class Editor {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const o = this.obj();
-    drawScene(ctx, this.W, this.H, this.v, plan(), this.mode, this.fi, { grid: this.grid, preview: this.preview, selObj: o ? { kind: this.sel.kind, o } : null });
+    drawScene(ctx, this.W, this.H, this.v, plan(), this.mode, this.fi, { grid: this.grid, preview: this.preview, tool: this.tool, selObj: o ? { kind: this.sel.kind, o, group: this.sel.kind === 'room' ? roomGroupOf(this.floor, o) : null } : null });
   }
 }
 
@@ -1225,7 +1352,8 @@ function renderProps(ed) {
   let h = '';
   if (!o) h = ed.mode === 'site' ? siteSummary() : planSummary(ed);
   else if (k === 'room') {
-    const a = o.w * o.d / 1e6, grp = roomGroups(ed.floor).find(g => g.list.includes(o)), grpA = grp && grp.list.length > 1 ? grp.area : 0;
+    const multi = roomGroupOf(ed.floor, o).length > 1 ? roomGroupOf(ed.floor, o).length : 0;
+    const a = multi ? areaOf(roomGroupOf(ed.floor, o)) : o.w * o.d / 1e6, grp = roomGroups(ed.floor).find(g => g.list.includes(o)), grpA = grp && grp.list.length > 1 && Math.abs(grp.area - a) > .01 ? grp.area : 0;
     h = `<h3>部屋</h3><div class="stack">
       <label class="f">名前<input type="text" data-k="name" list="roomNames" value="${esc(o.name)}"></label>
       ${matSel('床', 'floor', FLOOR_MATS, o.floor)}
@@ -1233,12 +1361,13 @@ function renderProps(ed) {
       <div class="pg"><label class="f">アクセントクロス<select data-k="accent"><option value="">なし</option>${Object.entries(DIRS).map(([k, l]) => `<option value="${k}"${o.accent === k ? ' selected' : ''}>${l}の壁</option>`).join('')}</select></label>
       </div>${o.accent ? matSel('アクセントのクロス', 'accentPaper', WALLPAPERS, o.accentPaper || 'navy') : ''}
       ${matSel('天井', 'ceil', WALLPAPERS, o.ceil || '', `標準（${WALLPAPERS[plan().finish.ceil].label}）`, plan().finish.ceil)}` : ''}
-      <div class="pg"><label class="f">横（東西）mm${nIn('w', o.w, 455, 'min="455"')}</label><label class="f">縦（南北）mm${nIn('d', o.d, 455, 'min="455"')}</label>
-      <label class="f">左端 X${nIn('x', o.x, 455)}</label><label class="f">上端 Y${nIn('y', o.y, 455)}</label></div>
+      ${multi ? `<p class="hint">折れ線で描いた部屋です（四角 ${multi} 個の組み合わせ）。ドラッグでまとめて動きます。形を変えるときは消して描き直すか、「四角に分ける」で四角ごとに直します。</p>`
+      : `<div class="pg"><label class="f">横（東西）mm${nIn('w', o.w, 455, 'min="455"')}</label><label class="f">縦（南北）mm${nIn('d', o.d, 455, 'min="455"')}</label>
+      <label class="f">左端 X${nIn('x', o.x, 455)}</label><label class="f">上端 Y${nIn('y', o.y, 455)}</label></div>`}
       <div class="calc"><b>${(a / TATAMI).toFixed(1)}帖</b>　${a.toFixed(2)}㎡${grpA ? `<br>つながった「${esc(o.name)}」全体：<b>${(grpA / TATAMI).toFixed(1)}帖</b>　${grpA.toFixed(2)}㎡` : ''}</div>
       ${isIn(o) ? '' : '<p class="hint">バルコニー・ポーチ・テラスは床面積に入れず、屋根もかけません。</p>'}
       <p class="hint">となりの部屋と同じ名前にすると、間の壁がなくなります（L字のLDKなど）。</p>
-      <div class="acts"><button class="btn sm" data-act="walk">この部屋を3D内観で見る</button><button class="btn sm" data-act="rot">縦横を入れ替え</button><button class="btn sm" data-act="dup">複製</button><button class="btn sm danger" data-act="del">削除</button></div></div>`;
+      <div class="acts"><button class="btn sm" data-act="walk">この部屋を3D内観で見る</button>${multi ? '<button class="btn sm" data-act="ungroup">四角に分ける</button>' : '<button class="btn sm" data-act="rot">縦横を入れ替え</button>'}<button class="btn sm" data-act="dup">複製</button><button class="btn sm danger" data-act="del">削除</button></div></div>`;
   } else if (k === 'opening') {
     h = `<h3>建具</h3><div class="stack">
       <label class="f">種類<select data-k="type">${optList(OPENINGS, o.type)}</select></label>
@@ -1279,6 +1408,8 @@ function renderProps(ed) {
     if (key === 'color' && o2.product) o2.product.color = '';
     if (key === 'accent' && o2.accent && !o2.accentPaper) o2.accentPaper = 'navy';
     if (key === 'name' && !o2.paper && defaultPaper(o2.name)) o2.paper = defaultPaper(o2.name);
+    // 折れ線の部屋は、名前・仕上げをまとめて変える
+    if (k === 'room' && o2.gid) roomGroupOf(ed.floor, o2).forEach(r => { if (r !== o2) for (const kk of ['name', 'floor', 'paper', 'accent', 'accentPaper', 'ceil']) { if (o2[kk] === undefined) delete r[kk]; else r[kk] = o2[kk]; } });
     commit();
   }));
   const setProd = (o2, i, cn) => {
@@ -1306,6 +1437,7 @@ function renderProps(ed) {
   host.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => {
     const a = b.dataset.act;
     if (a === 'del') ed.del(); else if (a === 'rot') ed.rotate(); else if (a === 'dup') ed.duplicate();
+    else if (a === 'ungroup') { const o2 = ed.obj(); if (o2 && o2.gid) { pushUndo(); roomGroupOf(ed.floor, o2).forEach(r => delete r.gid); commit(); toast('四角に分けました（同じ名前なので壁はできません。名前を変えると壁ができます）'); } }
     else if (a === 'walk') { const r = ed.obj(); showTab('int3d'); getView().goRoom(r, ed.fi); syncWalkSel(ed.fi, r.id); }
   }));
   host.querySelectorAll('[data-sv]').forEach(b => b.addEventListener('click', () => {

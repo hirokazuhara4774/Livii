@@ -54,6 +54,7 @@ function shiftAll(p, dx, dy) {
     f.walls.forEach(w => { w.x1 += dx; w.x2 += dx; w.y1 += dy; w.y2 += dy; });
     f.openings.forEach(o => { o.x += dx; o.y += dy; });
     f.items.forEach(it => { it.x += dx; it.y += dy; });
+    (f.hidden || []).forEach(h => { h.x1 += dx; h.x2 += dx; h.y1 += dy; h.y2 += dy; });
   }
   p.ext.forEach(it => { it.x += dx; it.y += dy; });
 }
