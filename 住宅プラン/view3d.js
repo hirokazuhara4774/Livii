@@ -2,6 +2,7 @@
    図面は mm、3D は m。X＝東、Z＝南（図面の y）、Y＝上。仕上げ材の模様は materials.js で描く。 */
 'use strict';
 
+THREE.ColorManagement.legacyMode = false;   // 色を正しく（sRGB→リニア）扱う
 const M = v => v / 1000;
 const LAT = 33;            // 日影の計算に使う緯度（熊本）
 let ANISO = 4;
@@ -18,11 +19,11 @@ function texMat(pat, color, o = {}, bump = .01) {
   if (texCache.has(key)) return texCache.get(key);
   const pc = patCanvas(pat, color);
   const t = new THREE.CanvasTexture(pc.cv);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / pc.tw, 1 / pc.th); t.anisotropy = ANISO;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / pc.tw, 1 / pc.th); t.anisotropy = ANISO; t.encoding = THREE.sRGBEncoding;
   const m = new THREE.MeshStandardMaterial(Object.assign({ map: t, bumpMap: t, bumpScale: bump, roughness: .85, metalness: 0 }, o));
   texCache.set(key, m); return m;
 }
-const GLASS = () => mat('#9fc0d4', { transparent: true, opacity: .35, roughness: .1, metalness: .2, depthWrite: false });
+const GLASS = () => mat('#9fc0d4', { transparent: true, opacity: .35, roughness: .05, metalness: .3, depthWrite: false, envMapIntensity: 1.6 });
 function mesh(geo, m, shadow = true) { const x = new THREE.Mesh(geo, m); x.castShadow = shadow; x.receiveShadow = true; return x; }
 // 箱の UV を m 単位にする（模様の大きさをそろえる）。o は箱の中心の位置
 function worldUV(geo, ox = 0, oy = 0, oz = 0) {
@@ -66,6 +67,31 @@ function polyGeo(polys) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.computeVertexNormals(); return g;
+}
+
+/* ---------- 空 ---------- */
+function skyTexture(night) {
+  const W = 2048, H = 1024, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'), R = mulberry(night ? 7 : 3);
+  const g = c.createLinearGradient(0, 0, 0, H);
+  if (night) { g.addColorStop(0, '#060b18'); g.addColorStop(.42, '#14203a'); g.addColorStop(.5, '#2b3550'); g.addColorStop(.52, '#1a1d22'); g.addColorStop(1, '#121315'); }
+  else { g.addColorStop(0, '#3f78c0'); g.addColorStop(.3, '#79a7da'); g.addColorStop(.47, '#cfe0ef'); g.addColorStop(.5, '#e9eef0'); g.addColorStop(.52, '#8f957f'); g.addColorStop(1, '#6f745f'); }
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  if (night) {
+    for (let i = 0; i < 700; i++) { c.fillStyle = `rgba(255,255,255,${.3 + R() * .7})`; const s = R() < .05 ? 2 : 1; c.fillRect(R() * W, R() * H * .45, s, s); }
+  } else {
+    // 雲：やわらかい楕円を重ねる（地平線に近いほど平たく小さく）
+    for (let k = 0; k < 46; k++) {
+      const cx = R() * W, cy = H * (.12 + R() * .32), sc = .4 + (cy / H) * 1.2, n = 6 + Math.floor(R() * 10);
+      for (let i = 0; i < n; i++) {
+        const x = cx + (R() - .5) * 220 * sc, y = cy + (R() - .5) * 30 * sc, rx = (40 + R() * 90) * sc, ry = rx * (.35 + R() * .2) * (1.2 - cy / H);
+        const rg = c.createRadialGradient(x, y, 0, x, y, rx);
+        rg.addColorStop(0, 'rgba(255,255,255,.55)'); rg.addColorStop(.6, 'rgba(250,252,255,.25)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = rg; c.save(); c.translate(x, y); c.scale(1, ry / rx); c.beginPath(); c.arc(0, 0, rx, 0, 7); c.fill(); c.restore();
+      }
+    }
+  }
+  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return t;
 }
 
 /* ---------- 仕上げ材 ---------- */
@@ -473,16 +499,12 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
       break;
     case 'storage': B(g, W, H * .93, D, 0, 0, 0, texMat('spandrel', c, {}, .01)); B(g, W + .08, H * .07, D + .08, 0, H * .93, 0, '#8c9094'); B(g, W * .45, H * .8, .01, -W * .2, .05, D / 2, shade(c, -.1)); B(g, W * .45, H * .8, .01, W * .2, .05, D / 2 + .01, shade(c, -.05)); break;
     /* --- 植栽 --- */
-    case 'tree': {
-      const tr = Math.max(.07, W * .05);
-      cyl(tr, H * .5, 0, 0, 0, '#6b4f3a', 8, tr * .7);
-      const r = W / 2; ball(r, 0, Math.max(H - r, H * .5 + r * .5), 0, c, .95);
-      ball(r * .6, r * .45, H - r * 1.1, r * .2, shade(c, .08)); ball(r * .55, -r * .4, H - r * 1.2, -r * .25, shade(c, -.06));
-      break;
-    }
-    case 'evergreen': {
-      cyl(.08, H * .35, 0, 0, 0, '#5b4433', 8);
-      const r = W / 2; ball(r, 0, H - r * 1.05, 0, c, 1.15); ball(r * .7, r * .4, H - r * 1.5, r * .3, shade(c, -.08)); ball(r * .7, -r * .35, H - r * 1.4, -r * .3, shade(c, .06));
+    case 'tree': case 'evergreen': {
+      const ev = it.type === 'evergreen', r = W / 2, tr = Math.max(.06, W * .045), cy = Math.max(H - r * (ev ? 1.05 : .95), H * .45 + r * .4);
+      cyl(tr, cy, 0, 0, 0, '#5e4636', 9, tr * .65);
+      // 枝
+      for (let k = 0; k < 4; k++) { const a = k * 1.7 + .4, br = mesh(new THREE.CylinderGeometry(tr * .25, tr * .4, r * .9, 6), mat('#5e4636')); br.position.set(Math.cos(a) * r * .25, cy - r * .1, Math.sin(a) * r * .25); br.rotation.set(Math.sin(a) * .9, 0, -Math.cos(a) * .9); g.add(br); }
+      foliage(g, it, 0, cy, 0, r, ev ? r * 1.15 : r * .95, c);
       break;
     }
     case 'conifer': {
@@ -490,7 +512,7 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
       const m = mesh(new THREE.ConeGeometry(W / 2, H * .82, 10), mat(c, { flatShading: true })); m.position.set(0, H * .18 + H * .41, 0); g.add(m);
       break;
     }
-    case 'shrub': ball(W / 2, 0, H / 2, 0, c, H / W); ball(W * .3, W * .25, H * .7, 0, shade(c, .1), .9); break;
+    case 'shrub': foliage(g, it, 0, H * .5, 0, W / 2, H / 2, c, 14); break;
     case 'planter': B(g, W, .35, D, 0, 0, 0, c); B(g, W - .06, .02, D - .06, 0, .34, 0, '#5a4636'); for (let x = -W / 2 + .15; x < W / 2; x += .25) ball(.14, x, .35 + Math.max(.1, H - .5), 0, '#5f8f4a', 1.4); break;
     /* --- 設備・その他 --- */
     case 'poleLight': cyl(.05, H - .15, 0, 0, 0, c, 10); cyl(.06, .15, 0, H - .15, 0, mat('#fff6d8', { emissive: '#bfae80' }), 12); cyl(.07, .02, 0, H, 0, c, 12); break;
@@ -510,10 +532,21 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
     case 'parasol': cyl(.02, H, 0, 0, 0, '#777'); { const m = mesh(new THREE.ConeGeometry(W / 2, .5, 8, 1, true), mat(c, { side: THREE.DoubleSide })); m.position.set(0, H - .2, 0); g.add(m); } cyl(.2, .05, 0, 0, 0, '#555', 16); break;
     case 'bench': B(g, W, .05, D * .8, 0, .42, D * .1, texMat('woodV', c, {}, .01)); B(g, W, .35, .04, 0, .5, -D / 2 + .02, texMat('woodV', c, {}, .01)); legs(W, D * .8, .42, 0, D * .1, '#333', .05); break;
     case 'car': {
-      const bh = H * .42;
-      B(g, W, bh, D, 0, .22, 0, c, { metalness: .4, roughness: .35 });
-      B(g, W * .86, H * .3, D * .46, 0, .22 + bh, -D * .04, '#3c4853', { metalness: .3, roughness: .25 });
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const w = mesh(new THREE.CylinderGeometry(.32, .32, .22, 16), mat('#1b1b1b')); w.rotation.z = Math.PI / 2; w.position.set(sx * (W / 2 - .1), .32, sz * (D / 2 - .75)); g.add(w); }
+      const L = D, Hh = H, side = (pts, depth, m, x0 = 0) => {
+        const sh = new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(z, y)));
+        const geo = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: .04, bevelSize: .04, bevelSegments: 3, curveSegments: 6 });
+        geo.translate(0, 0, -depth / 2); geo.rotateY(-Math.PI / 2);
+        const m2 = mesh(geo, m); m2.position.x = x0; g.add(m2); return m2;
+      };
+      const body = [[-L / 2, .3], [-L / 2, .85], [-L / 2 + .12, .97], [-L / 2 + .55, 1.0], [-L / 2 + .95, Hh], [L * .12, Hh], [L * .28, .98], [L / 2 - .2, .86], [L / 2, .72], [L / 2, .3]];
+      side(body, W - .1, mat(c, { metalness: .5, roughness: .28, envMapIntensity: 1.3 }));
+      const glass = [[-L / 2 + .62, 1.0], [-L / 2 + .97, Hh - .05], [L * .1, Hh - .05], [L * .25, 1.0]];
+      side(glass, W - .06, mat('#1d262e', { metalness: .6, roughness: .1, envMapIntensity: 1.8 }));
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const w = mesh(new THREE.CylinderGeometry(.32, .32, .22, 20), mat('#191919', { roughness: .9 })); w.rotation.z = Math.PI / 2; w.position.set(sx * (W / 2 - .12), .32, sz * (L / 2 - .78)); g.add(w);
+        const hub = mesh(new THREE.CylinderGeometry(.19, .19, .23, 16), mat('#b9bcbf', { metalness: .8, roughness: .3 })); hub.rotation.z = Math.PI / 2; hub.position.copy(w.position); g.add(hub);
+      }
+      for (const sx of [-1, 1]) { B(g, .22, .06, .03, sx * (W / 2 - .25), .78, L / 2 + .01, mat('#f4f1e6', { emissive: '#3a352a' })); B(g, .22, .06, .03, sx * (W / 2 - .25), .82, -L / 2 - .01, mat('#a8241e', { emissive: '#3a0a08' })); }
       break;
     }
     case 'bike': {
@@ -526,6 +559,19 @@ function itemMesh(it, isExt, Y0, fh, fc, X) {
     default: B(g, W, H, D, 0, 0, 0, c);
   }
   return g;
+}
+
+// 木の葉：小さな葉のかたまりを、だ円体の中にちらして重ねる（同じ木は毎回同じ形）
+function foliage(g, it, x0, y0, z0, rx, ry, col, n = 22) {
+  const R = mulberry(hashStr(it.id || 'tree'));
+  const pal = [shade(col, -.18), shade(col, -.06), col, shade(col, .1), shade(col, .2)];
+  for (let i = 0; i < n; i++) {
+    const a = R() * Math.PI * 2, u = R() * 2 - 1, rr = Math.cbrt(R()) * .78, s = Math.sqrt(1 - u * u);
+    const x = x0 + Math.cos(a) * s * rx * rr, y = y0 + u * ry * rr * .85, z = z0 + Math.sin(a) * s * rx * rr;
+    const r = Math.max(rx, ry) * (.28 + R() * .22);
+    const m = mesh(new THREE.IcosahedronGeometry(r, 2), mat(pal[Math.floor(R() * pal.length) % pal.length], { roughness: .95 }));
+    m.position.set(x, y, z); m.scale.set(1, .85 + R() * .3, 1); m.rotation.set(R() * 3, R() * 3, 0); g.add(m);
+  }
 }
 
 /* ---------- 建物全体 ---------- */
@@ -599,11 +645,26 @@ function buildHouse(p) {
     }
   });
   root.add(ceil);
+  // 夜景用の照明の位置（外構の照明・門柱・カーポート・玄関）
+  const lights = [];
+  for (const it of p.ext) {
+    const x = M(it.x), z = M(it.y), h = M(it.h);
+    if (it.type === 'poleLight') lights.push([x, h + .1, z, 1.2, 6]);
+    if (it.type === 'gatepost' || it.type === 'funcpost') lights.push([x, h, z + .3, 1, 5]);
+    if (it.type === 'carport' || it.type === 'carport2') lights.push([x, h - .15, z, 2.2, 9]);
+    if (it.type === 'terraceRoof') lights.push([x, h - .15, z, 1.2, 6]);
+  }
+  const f0 = p.floors[0];
+  if (f0) for (const o of f0.openings.filter(o => o.type === 'entrance')) {
+    const ind = f0.rooms.filter(isIn), nx = o.dir === 'h' ? 0 : 1, ny = o.dir === 'h' ? 1 : 0;
+    const sgn = roomAt(ind, o.x + nx * 300, o.y + ny * 300) ? -1 : 1;
+    lights.push([M(o.x + nx * sgn * 700), fy[0] + 2.3, M(o.y + ny * sgn * 700), 2, 7]);
+  }
   // 大きさ
   const all = p.floors.flatMap(f => f.rooms);
   const bb = bboxOf(all) || { x: 0, y: 0, w: st.w, d: st.d };
   const topY = fy[fy.length - 1] + M(p.floors[p.floors.length - 1].h) + 1.5;
-  return { root, floorsG, roofsG, ceil, fy, bb, topY };
+  return { root, floorsG, roofsG, ceil, fy, bb, topY, lights };
 }
 function parapets(g, r, indoor, Y0, em) {
   const step = 455, h = 1.1, t = .12;
@@ -659,18 +720,26 @@ class View3D {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+    r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = .82;
     ANISO = Math.min(8, r.capabilities.getMaxAnisotropy());
     this.el = r.domElement; this.el.tabIndex = 0;
     this.scene = new THREE.Scene(); this.scene.background = new THREE.Color('#cfe0ee'); this.scene.fog = new THREE.Fog(0xcfe0ee, 90, 320);
     this.cam = new THREE.PerspectiveCamera(40, 1, .05, 800); this.cam.rotation.order = 'YXZ';
-    this.hemi = new THREE.HemisphereLight(0xe4edf5, 0x7d7a6e, .5); this.scene.add(this.hemi);
-    this.sun = new THREE.DirectionalLight(0xfff3e2, .7);
+    this.hemi = new THREE.HemisphereLight(0xdfeaf5, 0x8a8470, .35); this.scene.add(this.hemi);
+    this.skyTex = { day: skyTexture(false), night: skyTexture(true) };
+    this.sky = new THREE.Mesh(new THREE.SphereGeometry(420, 48, 24), new THREE.MeshBasicMaterial({ map: this.skyTex.day, side: THREE.BackSide, fog: false, depthWrite: false }));
+    this.scene.add(this.sky);
+    // 空を映り込み（環境光）に使う
+    this.pmrem = new THREE.PMREMGenerator(r); this.env = {};
+    for (const k of ['day', 'night']) { const es = new THREE.Scene(); es.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), new THREE.MeshBasicMaterial({ map: this.skyTex[k], side: THREE.BackSide }))); this.env[k] = this.pmrem.fromScene(es, .03).texture; }
+    this.nightLights = new THREE.Group(); this.scene.add(this.nightLights);
+    this.sun = new THREE.DirectionalLight(0xfff1de, 2.4);
     this.sun.castShadow = true; this.sun.shadow.mapSize.set(2048, 2048); this.sun.shadow.bias = -.0004; this.sun.shadow.normalBias = .03;
     this.scene.add(this.sun, this.sun.target);
     this.lamp = new THREE.PointLight(0xfff1dc, 0, 14, 1.5); this.scene.add(this.lamp);
     this.orb = { x: 0, y: 3, z: 0, az: .7, el: .42, r: 30 };
     this.walk = { x: 0, y: 1.5, z: 0, yaw: Math.PI, pitch: -.05, fi: 0 };
-    this.opt = { upTo: -1, season: 'equinox', hour: 10 };
+    this.opt = { upTo: -1, season: 'equinox', hour: 10, night: false };
     this.mode = 'orbit'; this.keys = new Set(); this.pad = new Set(); this.ptr = new Map();
     this.active = false; this.dirty = true; this.planId = null; this.H = null;
     this.bindEvents();
@@ -686,6 +755,9 @@ class View3D {
     const st = p.site, size = Math.max(M(st.w), M(st.d)) + 16;
     const sc = this.sun.shadow.camera; sc.left = -size / 2 - 6; sc.right = size / 2 + 6; sc.top = size / 2 + 6; sc.bottom = -size / 2 - 6; sc.near = 1; sc.far = 250; sc.updateProjectionMatrix();
     this.center = new THREE.Vector3(M(st.w / 2), 0, M(st.d / 2));
+    this.sky.position.copy(this.center);
+    this.nightLights.clear();
+    for (const [x, y, z, inten, dist] of (this.H.lights || []).slice(0, 12)) { const l = new THREE.PointLight(0xffc98a, inten * 3, dist, 2); l.position.set(x, y, z); this.nightLights.add(l); }
     if (this.planId !== p.id) { this.planId = p.id; this.preset('SE', true); this.resetWalk(p); }
     if (this.walk.fi >= p.floors.length) this.resetWalk(p);
     this.applyVis(); this.updateSun(); this.dirty = true;
@@ -741,14 +813,21 @@ class View3D {
     const c = this.center || new THREE.Vector3();
     const dir = new THREE.Vector3(-Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
     this.sun.position.copy(c).addScaledVector(dir, 80); this.sun.target.position.copy(c);
-    const day = Math.max(0, Math.sin(el));
+    const day = Math.max(0, Math.sin(el)), night = this.opt.night || el <= 0;
     const walk = this.mode === 'walk';
-    this.sun.intensity = el > 0 ? .2 + .55 * Math.min(1, day * 2.2) : 0;
-    this.hemi.intensity = (walk ? .55 : .42) + .12 * Math.min(1, day * 2);
-    this.hemi.groundColor.set(walk ? 0xd9d4ca : 0x7d7a6e);
-    this.lamp.intensity = walk ? .3 : 0;
-    const sky = el > 0 ? 0xcfe0ee : 0x2c3442;
-    this.scene.background.set(sky); this.scene.fog.color.set(sky);
+    this.sun.intensity = night ? 0 : .5 + 1.7 * Math.min(1, day * 2.2);
+    this.sun.color.set(day < .25 ? 0xffd2a0 : 0xfff1de);
+    this.hemi.intensity = night ? .05 : (walk ? .45 : .22) + .08 * Math.min(1, day * 2);
+    this.hemi.groundColor.set(walk ? 0xd9d4ca : 0x8a8470);
+    this.lamp.intensity = walk ? (night ? 1.2 : .3) : 0;
+    this.sky.material.map = night ? this.skyTex.night : this.skyTex.day; this.sky.material.needsUpdate = true;
+    this.scene.environment = night ? this.env.night : this.env.day;
+    const fogc = night ? 0x1d2436 : 0xd9e5ee;
+    this.scene.background.set(fogc); this.scene.fog.color.set(fogc);
+    this.nightLights.visible = night;
+    // 夜は窓に部屋の明かりを入れる
+    const gl = GLASS(); gl.emissive.set(night ? 0xffc27a : 0x000000); gl.emissiveIntensity = night ? .9 : 0; gl.opacity = night ? .75 : .35;
+    this.renderer.toneMappingExposure = night ? 1.2 : (walk ? .9 : .8);
     this.dirty = true;
   }
   preset(name, quiet) {
@@ -756,7 +835,18 @@ class View3D {
     const bb = H.bb, cx = M(bb.x + bb.w / 2), cz = M(bb.y + bb.d / 2);
     const size = Math.max(M(bb.w), M(bb.d), H.topY);
     const az = { SE: Math.PI / 4, SW: -Math.PI / 4, NE: Math.PI * 3 / 4, NW: -Math.PI * 3 / 4, S: 0, TOP: 0 }[name] ?? Math.PI / 4;
-    Object.assign(this.orb, { x: cx, y: H.topY * .38, z: cz, az, el: name === 'TOP' ? 1.5 : name === 'S' ? .16 : .38, r: size * (name === 'TOP' ? 2.3 : 2.05) + 4 });
+    this.cam.fov = this.mode === 'walk' ? 65 : 40;
+    if (name === 'EYE') {
+      // 人の目線（道路側から高さ1.6m）
+      const p = plan(), st = p.site, road = st.road || 'S';
+      const raz = { S: 0, N: Math.PI, E: Math.PI / 2, W: -Math.PI / 2 }[road] + .35;
+      const edge = road === 'S' ? M(st.d) - cz : road === 'N' ? cz : road === 'E' ? M(st.w) - cx : cx;
+      const r = Math.max(edge + M(st.roadW) * .6, size * 1.25) / Math.cos(.35);
+      const ty = 2.4;
+      Object.assign(this.orb, { x: cx, y: ty, z: cz, az: raz, el: Math.asin((1.6 - ty) / r), r });
+      this.cam.fov = 55; this.cam.updateProjectionMatrix();
+    } else Object.assign(this.orb, { x: cx, y: H.topY * .38, z: cz, az, el: name === 'TOP' ? 1.5 : name === 'S' ? .16 : .38, r: size * (name === 'TOP' ? 2.3 : 2.05) + 4 });
+    this.cam.updateProjectionMatrix();
     if (!quiet) { if (this.mode !== 'orbit') return; this.dirty = true; }
   }
   updateCam() {
@@ -813,7 +903,7 @@ class View3D {
       }
       if (this.mode === 'orbit') {
         if (q.b === 2 || q.b === 1 || q.sh) this.panBy(dx, dy);
-        else { this.orb.az -= dx * .007; this.orb.el = clamp(this.orb.el + dy * .006, .02, 1.55); }
+        else { this.orb.az -= dx * .007; this.orb.el = clamp(this.orb.el + dy * .006, -.25, 1.55); }
       } else {
         this.walk.yaw += dx * .004; this.walk.pitch = clamp(this.walk.pitch + dy * .004, -1.3, 1.3);
       }
@@ -850,15 +940,15 @@ class View3D {
   stepForward(d) { const w = this.walk; w.x += -Math.sin(w.yaw) * d; w.z += -Math.cos(w.yaw) * d; }
   snapshot() { this.render(); return this.el.toDataURL('image/png'); }
   // 印刷用：決まった視点・大きさで1枚描いて、元に戻す
-  snapshotPreset(name, upTo = -1) {
-    const saved = { orb: { ...this.orb }, mode: this.mode, upTo: this.opt.upTo, size: this.renderer.getSize(new THREE.Vector2()), aspect: this.cam.aspect, fov: this.cam.fov };
-    this.mode = 'orbit'; this.opt.upTo = upTo; this.cam.fov = 40; this.applyVis();
+  snapshotPreset(name, upTo = -1, night = false) {
+    const saved = { night: this.opt.night, orb: { ...this.orb }, mode: this.mode, upTo: this.opt.upTo, size: this.renderer.getSize(new THREE.Vector2()), aspect: this.cam.aspect, fov: this.cam.fov };
+    this.mode = 'orbit'; this.opt.upTo = upTo; this.opt.night = night; this.cam.fov = 40; this.applyVis();
     this.renderer.setSize(1800, 1200, false); this.cam.aspect = 1.5; this.cam.updateProjectionMatrix();
     this.preset(name, true);
     if (upTo >= 0) { this.orb.el = .75; this.orb.r *= .85; }
     this.render();
     const url = this.el.toDataURL('image/png');
-    this.orb = saved.orb; this.mode = saved.mode; this.opt.upTo = saved.upTo; this.cam.fov = saved.fov;
+    this.orb = saved.orb; this.mode = saved.mode; this.opt.upTo = saved.upTo; this.opt.night = saved.night; this.cam.fov = saved.fov;
     if (saved.size.x) this.renderer.setSize(saved.size.x, saved.size.y); else this.renderer.setSize(1, 1);
     this.cam.aspect = saved.aspect; this.cam.updateProjectionMatrix(); this.applyVis(); this.dirty = true;
     return url;

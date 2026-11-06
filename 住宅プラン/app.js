@@ -88,7 +88,7 @@ const FURN = {
 // 外構（mat：仕上げ PAVINGS。round：上から見て丸い）
 const EXT_CATS = ['床・舗装', '塀・門まわり', 'カーポート・物置', '植栽', '設備・その他'];
 const EXT = {
-  parking:    { cat: 0, label: '駐車場（コンクリート）', w: 5500, d: 5500, h: 100,  mat: 'concJoint', flat: 1 },
+  parking:    { cat: 0, label: '駐車場（コンクリート）', w: 5500, d: 5500, h: 100,  mat: 'brushConc', flat: 1 },
   approach:   { cat: 0, label: 'アプローチ（タイル）', w: 1200, d: 4000, h: 60,   mat: 'tilePave', flat: 1 },
   interlock:  { cat: 0, label: 'インターロッキング',   w: 1500, d: 3000, h: 60,   mat: 'interlock', flat: 1 },
   stonePave:  { cat: 0, label: '乱形石',               w: 1500, d: 1500, h: 60,   mat: 'stoneP', flat: 1 },
@@ -156,6 +156,8 @@ function defaultPaper(name) {
 const DIRS = { N: '北', S: '南', E: '東', W: '西' };
 // 外観の組み合わせ（lower：1階だけ別の外壁）
 const SCHEMES = [
+  { name: 'ニチハ×ケイミュー（白×黒）', ext: 'nh_moen_flat', extWall: '#ecebe6', roof: 'km_glassa_bk', roofC: '#28292c', sash: '#2b2b2b' },
+  { name: 'ケイミュー光セラ（タイル×白）', ext: 'km_hk_flat', extWall: '#f0efea', roof: 'nh_yokodan_bk', roofC: '#2b2c2e', sash: '#2b2b2b', lower: { key: 'km_hk_tile', color: '#4b4a49' } },
   { name: 'ホワイト×ブラック',     ext: 'siding_h', extWall: '#ebe8e1', roof: 'galva',    roofC: '#2f3236', sash: '#2b2b2b' },
   { name: 'ツートン（タイル×白）', ext: 'siding_h', extWall: '#ebe8e1', roof: 'slate',    roofC: '#34373b', sash: '#2b2b2b', lower: { key: 'tile', color: '#8c7a66' } },
   { name: 'モダン（ガルバ×木）',   ext: 'galva_v',  extWall: '#3a3d40', roof: 'galva',    roofC: '#2f3236', sash: '#2b2b2b', lower: { key: 'siding_wd', color: '#9a7350' } },
@@ -191,6 +193,23 @@ function newPlan(sample) {
   if (sample) fillSample(p);
   return p;
 }
+// 取り込んだテクスチャ画像（プランごと）をカタログに登録する
+const CUSTOM_CATS = { ext: ['外壁', EXT_WALLS], roof: ['屋根', ROOF_MATS], wall: ['壁紙', WALLPAPERS], floor: ['床', FLOOR_MATS], pave: ['舗装', PAVINGS] };
+function registerCustoms(p) {
+  for (const [, cat] of Object.values(CUSTOM_CATS)) for (const k of Object.keys(cat)) if (k.startsWith('cu_')) delete cat[k];
+  const loads = [];
+  for (const m of (p.customMats || [])) {
+    const cat = CUSTOM_CATS[m.cat]; if (!cat) continue;
+    const pat = 'img:' + m.id;
+    if (!PATS[pat]) {
+      const im = new Image(); im.src = m.img;
+      PATS[pat] = { tw: m.w / 1000, th: m.h / 1000, image: im };
+      loads.push(new Promise(res => { im.onload = im.onerror = res; }));
+    }
+    cat[1][m.id] = { maker: m.maker || '取り込み', series: m.series || '', label: m.series ? `${m.series}（${m.label}）` : m.label, pat, color: '#cccccc' };
+  }
+  return Promise.all(loads);
+}
 // 足りない項目を初期値で補う（古いデータ・読み込んだデータ用）
 function ensurePlan(p) {
   p.finish = Object.assign({ ext: 'siding_h', roof: 'slate', wall: 'white', ceil: 'white' }, p.finish || {});
@@ -207,6 +226,8 @@ function ensurePlan(p) {
     f.rooms.forEach(r => { if (!FLOOR_MATS[r.floor]) r.floor = defaultFloor(r.name); });
   });
   p.ext.forEach(it => { if (EXT[it.type]?.mat && !PAVINGS[it.mat]) it.mat = EXT[it.type].mat; });
+  p.products = p.products || {};
+  p.customMats = p.customMats || [];
   return p;
 }
 function fillSample(p) {
@@ -248,8 +269,7 @@ function fillSample(p) {
   f1.items.unshift(f1.items.pop());   // ラグは一番下に描く
   f2.items.push(F('aircon', 7280, 3640 + 75 + 125, 0), F('chest', 9100 - 75 - 225, 6800, 90));
   // 外観：1階タイル＋2階サイディングのツートン
-  p.finish.roof = 'galva'; p.colors.roof = ROOF_MATS.galva.color;
-  f1.ext = { key: 'tile', color: '#8c7a66' };
+
   p.ext = [
     E('parking', 2730, 15470, 0, { w: 5460, d: 5460 }), E('approach', 1820, 9555, 0, { w: 1820, d: 6370 }),
     E('lawn', 10465, 15925, 0, { w: 9100, d: 4550 }), E('deck', 9555, 12513, 0, { w: 3640, d: 1365 }),
@@ -263,10 +283,30 @@ function fillSample(p) {
     E('stepping', 13300, 15200, 90, { w: 2400 }), E('outdoorUnit', 11300, 4550 - 250, 0), E('heater', 6200, 4550 - 420, 0),
     E('gardenSet', 13200, 17000), E('flowers', 9555, 13450, 0, { w: 3640, d: 400 }),
   ];
+  // 採用商品の例
+  const prod = (it, i, ci = 0) => { const [maker, name, cols] = PRODUCTS[it.type][i]; it.product = { maker, name, color: cols[ci][0] }; it.color = cols[ci][1]; };
+  p.ext.filter(it => it.type === 'fence').forEach(it => prod(it, 0, 0));
+  prod(p.ext.find(it => it.type === 'funcpost'), 0, 0);
+  prod(p.ext.find(it => it.type === 'storage'), 0, 0);
+  p.ext.filter(it => it.type === 'poleLight').forEach(it => prod(it, 0, 0));
+  const dk = p.ext.find(it => it.type === 'deck'); prod(dk, 0, 0); dk.mat = 'lx_deck';
+  const ap = p.ext.find(it => it.type === 'approach'); prod(ap, 0, 0); ap.mat = 'ty_salto';
+  p.ext.push(Object.assign(E('carport2', 2730, 15470), {}));
+  prod(p.ext[p.ext.length - 1], 0, 0);
+  prod(f1.items.find(it => it.type === 'kitchen'), 0, 0);
+  prod(f1.items.find(it => it.type === 'toilet'), 0, 0);
+  p.finish.ext = 'km_hk_flat'; p.colors.extWall = EXT_WALLS.km_hk_flat.color;
+  f1.ext = { key: 'km_hk_tile', color: EXT_WALLS.km_hk_tile.color };
+  p.finish.roof = 'nh_yokodan_bk'; p.colors.roof = ROOF_MATS.nh_yokodan_bk.color;
+  p.finish.wall = 'sg_sp_white';
+  p.products = { sash: { maker: 'YKK AP', name: 'APW330（樹脂窓）', color: 'ブラック' }, entrance: { maker: 'LIXIL', name: 'ジエスタ2（玄関ドア）', color: 'チーク調' }, door: { maker: '大建工業', name: 'hapia（室内ドア）', color: 'ナチュラル' } };
+  Object.assign(p.colors, { sash: '#2b2b2b', entrance: '#8d5f3b', door: '#c49a6c' });
+  Object.assign(f1.rooms.find(r => r.name === '和室'), { floor: 'dk_sukoyaka' });
+  f1.rooms.filter(r => r.name === 'LDK').forEach(r => r.floor = 'dk_trinity_oak');
 }
 
 let store = load();
-store.plans.forEach(ensurePlan);
+store.plans.forEach(p => { registerCustoms(p); ensurePlan(p); });
 function load() {
   try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.plans && s.plans.length) return s; } catch (e) { /* 壊れていたら作り直す */ }
   const p = newPlan(true);
@@ -631,7 +671,7 @@ function drawItem(ctx, v, it, isExt, faint) {
   // 名前（回転しない）
   const lab = short(c.label);
   const fs = clamp(Math.min(w, d) * .28, 0, 12);
-  if (fs >= 8 && !['fence', 'block', 'hedge'].includes(T) && Math.max(w, d) > lab.length * fs * .9) {
+  if (fs >= 8 && !['fence', 'block', 'hedge', 'carport', 'carport2', 'cycleport', 'terraceRoof', 'pergola'].includes(T) && Math.max(w, d) > lab.length * fs * .9) {
     ctx.save(); if (faint) ctx.globalAlpha = .35;
     labelAt(ctx, it.x * v.s + v.ox, it.y * v.s + v.oy + (T === 'stairs' ? 0 : 0), [lab], fs, isExt ? '#2f2f2c' : '#555');
     ctx.restore();
@@ -726,10 +766,20 @@ function drawSite(ctx, W, H, v, p, ui) {
   dimLine(ctx, v, [0, st.w], -gap * 1.2, true);
   dimLine(ctx, v, [0, st.d], -gap * 1.2, false);
   // 外構の名前（建物の下に隠れないよう最後に）
-  for (const it of flat) { const c = EXT[it.type], w = L(it.w), d = L(it.d), fs = clamp(Math.min(w, d) * .28, 0, 12), lab = short(c.label); if (fs >= 8 && Math.max(w, d) > lab.length * fs * .9) labelAt(ctx, X(it.x), Y(it.y), [lab], fs, '#2f2f2c'); }
+  for (const it of flat) { const c = EXT[it.type], w = L(it.w), d = L(it.d), fs = clamp(Math.min(w, d) * .28, 0, 12), lab = short(c.label); if (fs >= 8 && Math.max(w, d) > lab.length * fs * .9 && !p.ext.some(q => ['carport', 'carport2'].includes(q.type) && Math.hypot(q.x - it.x, q.y - it.y) < 1500)) labelAt(ctx, X(it.x), Y(it.y), [lab], fs, '#2f2f2c'); }
   if (bb) {
     dimLine(ctx, v, [0, bb.x, bb.x + bb.w, st.w], -gap * 2.3, true);
     dimLine(ctx, v, [0, bb.y, bb.y + bb.d, st.d], -gap * 2.3, false);
+  }
+  // 採用商品の番号（引出し線つき）
+  const used = new Set();
+  for (const o of productList(p)) {
+    if (o.where !== '外構' || used.has(o.it.id)) continue; used.add(o.it.id);
+    const ix = X(o.it.x), iy = Y(o.it.y), bx = ix + 18, by = iy - 18;
+    ctx.strokeStyle = '#c0504d'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ix, iy); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.fillStyle = '#c0504d'; ctx.beginPath(); ctx.arc(ix, iy, 2.5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx, by, 9, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '700 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(o.no), bx, by + .5);
   }
   drawNorth(ctx, W, ui);
   drawSel(ctx, v, ui);
@@ -1045,7 +1095,17 @@ const optList = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value
 function matSel(label, key, cat, cur, blank, fallback) {
   const m = cat[cur] || cat[fallback];
   const img = m ? `<img class="mthumb" src="${patThumb(m.pat, m.color, 60, 30, 1.2)}" alt="">` : '<span class="mthumb"></span>';
-  return `<label class="f">${label}<span class="msel">${img}<select data-k="${key}">${blank ? `<option value=""${cur ? '' : ' selected'}>${esc(blank)}</option>` : ''}${optList(cat, cur)}</select></span></label>`;
+  return `<label class="f">${label}<span class="msel">${img}<select data-k="${key}">${blank ? `<option value=""${cur ? '' : ' selected'}>${esc(blank)}</option>` : ''}${optGroups(cat, cur)}</select></span></label>`;
+}
+// 商品（メーカー・シリーズ・色）の選択
+function productSel(o) {
+  const list = PRODUCTS[o.type];
+  if (!list) return '';
+  const pr = o.product, idx = pr ? list.findIndex(([m, n]) => m === pr.maker && n === pr.name) : -1;
+  const cols = idx >= 0 ? list[idx][2] : [];
+  return `<div class="prod"><label class="f">商品（メーカー）<select data-prod="1"><option value="">指定なし（一般）</option>${list.map(([m, n], i) => `<option value="${i}"${i === idx ? ' selected' : ''}>${esc(m)}　${esc(n)}</option>`).join('')}</select></label>
+    ${idx >= 0 ? `<label class="f">色<select data-prodc="1">${cols.map(([cn, hex]) => `<option value="${esc(cn)}"${cn === pr.color ? ' selected' : ''}>${esc(cn)}</option>`).join('')}</select></label>
+    <div class="sws">${swatchBtns('pc', cols.map(([cn, hex]) => [cn, hex]), 'data-pcs')}</div>` : ''}</div>`;
 }
 function swatchBtns(key, list, dataAttr = 'data-sw') {
   return list.map(([n, c]) => `<button type="button" class="sw" ${dataAttr}="${key}" data-c="${c}" title="${esc(n)}" style="background:${c}"></button>`).join('');
@@ -1064,7 +1124,7 @@ function renderProps(ed) {
       ${matSel('床', 'floor', FLOOR_MATS, o.floor)}
       ${isIn(o) ? `${matSel('壁紙', 'paper', WALLPAPERS, o.paper || '', `標準（${WALLPAPERS[plan().finish.wall].label}）`, plan().finish.wall)}
       <div class="pg"><label class="f">アクセントクロス<select data-k="accent"><option value="">なし</option>${Object.entries(DIRS).map(([k, l]) => `<option value="${k}"${o.accent === k ? ' selected' : ''}>${l}の壁</option>`).join('')}</select></label>
-      ${o.accent ? `<label class="f">クロス<select data-k="accentPaper">${optList(WALLPAPERS, o.accentPaper || 'navy')}</select></label>` : ''}</div>
+      </div>${o.accent ? matSel('アクセントのクロス', 'accentPaper', WALLPAPERS, o.accentPaper || 'navy') : ''}
       ${matSel('天井', 'ceil', WALLPAPERS, o.ceil || '', `標準（${WALLPAPERS[plan().finish.ceil].label}）`, plan().finish.ceil)}` : ''}
       <div class="pg"><label class="f">横（東西）mm${nIn('w', o.w, 455, 'min="455"')}</label><label class="f">縦（南北）mm${nIn('d', o.d, 455, 'min="455"')}</label>
       <label class="f">左端 X${nIn('x', o.x, 455)}</label><label class="f">上端 Y${nIn('y', o.y, 455)}</label></div>
@@ -1084,6 +1144,7 @@ function renderProps(ed) {
     h = `<h3>${esc(c.label)}</h3><div class="stack">
       <div class="pg"><label class="f">幅 mm${nIn('w', o.w, 10, 'min="20"')}</label><label class="f">奥行 mm${nIn('d', o.d, 10, 'min="20"')}</label>
       <label class="f">高さ mm${nIn('h', o.h, 10, 'min="0"')}</label><label class="f">向き（度）${nIn('rot', o.rot, 15)}</label></div>
+      ${productSel(o)}
       ${k === 'ext' && c.mat ? matSel('仕上げ', 'mat', PAVINGS, o.mat || c.mat) : ''}
       <label class="f">色<input type="color" data-k="color" value="${o.color || c.color}"></label>
       ${swatchRow('color', SWATCH.wood)}
@@ -1106,10 +1167,23 @@ function renderProps(ed) {
     if (k === 'opening' && key === 'w') attachOpening(ed.floor, o2, o2.x, o2.y);
     if (k === 'ext' && EXT[o2.type]?.round && key === 'w') o2.d = o2.w;
     if (key === 'mat') o2.color = PAVINGS[o2.mat].color;
+    if (key === 'color' && o2.product) o2.product.color = '';
     if (key === 'accent' && o2.accent && !o2.accentPaper) o2.accentPaper = 'navy';
     if (key === 'name' && !o2.paper && defaultPaper(o2.name)) o2.paper = defaultPaper(o2.name);
     commit();
   }));
+  const setProd = (o2, i, cn) => {
+    const list = PRODUCTS[o2.type];
+    if (i === '' || i == null) { delete o2.product; return; }
+    const [maker, name, cols] = list[+i], col = cols.find(([n]) => n === cn) || cols[0];
+    o2.product = { maker, name, color: col[0] }; o2.color = col[1];
+    if (o2.type === 'deck' && name.includes('樹ら楽')) o2.mat = 'lx_deck';
+    if (o2.type === 'deck' && name.includes('リウッド')) o2.mat = 'yk_deck';
+    if (o2.type === 'approach' && name.includes('サルト')) o2.mat = col[0] === 'グレー' ? 'ty_salto_gy' : 'ty_salto';
+  };
+  host.querySelectorAll('[data-prod]').forEach(el => el.addEventListener('change', () => { const o2 = ed.obj(); if (!o2) return; pushUndo(); setProd(o2, el.value); commit(); }));
+  host.querySelectorAll('[data-prodc]').forEach(el => el.addEventListener('change', () => { const o2 = ed.obj(); if (!o2 || !o2.product) return; pushUndo(); const i = PRODUCTS[o2.type].findIndex(([m, n]) => m === o2.product.maker && n === o2.product.name); setProd(o2, i, el.value); commit(); }));
+  host.querySelectorAll('[data-pcs]').forEach(b => b.addEventListener('click', () => { const o2 = ed.obj(); if (!o2 || !o2.product) return; pushUndo(); const i = PRODUCTS[o2.type].findIndex(([m, n]) => m === o2.product.maker && n === o2.product.name); setProd(o2, i, b.title); commit(); }));
   host.querySelectorAll('[data-sw]').forEach(b => b.addEventListener('click', () => {
     const o2 = ed.obj(); if (!o2) return;
     pushUndo(); o2[b.dataset.sw] = b.dataset.c; commit();
@@ -1134,6 +1208,33 @@ function planSummary(ed) {
     <tr class="t"><td>延床面積</td><td class="r">${total.toFixed(2)}㎡</td><td class="r">${(total / TSUBO).toFixed(2)}坪</td></tr></table>
     <p class="hint">壁の中心線で計算した目安です（バルコニー等は除く）。</p>`;
 }
+// 採用している商品・仕上げの一覧（外構図パネル・印刷で使う）
+function specRows(p) {
+  const rows = [];
+  const ext0 = EXT_WALLS[p.finish.ext];
+  rows.push(['外壁', matName(ext0) + (p.floors.some(f => f.ext) ? '' : '')]);
+  p.floors.forEach((f, i) => { if (f.ext && EXT_WALLS[f.ext.key]) rows.push([`外壁（${i + 1}階）`, matName(EXT_WALLS[f.ext.key])]); });
+  rows.push(['屋根', matName(ROOF_MATS[p.finish.roof])]);
+  const sp = (k, label) => { const pr = p.products && p.products[k]; if (pr) rows.push([label, productName(pr)]); };
+  sp('sash', 'サッシ'); sp('entrance', '玄関ドア'); sp('door', '室内ドア');
+  rows.push(['壁紙（標準）', matName(WALLPAPERS[p.finish.wall])]);
+  return rows;
+}
+function productList(p) {
+  // 番号つきの採用商品（外構→各階の家具の順）
+  const out = [];
+  p.ext.forEach(it => { if (it.product || (it.mat && PAVINGS[it.mat] && PAVINGS[it.mat].maker && PAVINGS[it.mat].maker !== '一般')) out.push({ it, where: '外構', text: it.product ? productName(it.product) : matName(PAVINGS[it.mat]) }); });
+  p.floors.forEach((f, i) => f.items.forEach(it => { if (it.product) out.push({ it, where: `${i + 1}階`, text: productName(it.product) }); }));
+  const seen = new Map();
+  out.forEach(o => { const k = o.where === '外構' ? o.text : o.where + o.text; if (!seen.has(k)) seen.set(k, seen.size + 1); o.no = seen.get(k); });
+  return out;
+}
+function productTable(p) {
+  const pl = productList(p), seen = new Set();
+  return `<h3 style="margin-top:14px">採用商品・仕上げ</h3><table>${specRows(p).map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}
+    ${pl.filter(o => !seen.has(o.no) && seen.add(o.no)).map(o => `<tr><td><span class="no">${o.no}</span>${esc(o.where)}</td><td>${esc(o.text)}</td></tr>`).join('')}</table>
+    <p class="hint">外構・家具を選んで「商品（メーカー）」を選ぶとここに出ます。色・品番は各社の最新カタログで確認してください。</p>`;
+}
 function siteSummary() {
   const p = plan(), st = p.site, sa = st.w * st.d / 1e6;
   const foot = areaOf(rectsOf(p.floors.flatMap(f => f.rooms.filter(isIn))));
@@ -1147,6 +1248,7 @@ function siteSummary() {
     <tr class="t"><td>容積率</td><td class="r" colspan="2">${(total / sa * 100).toFixed(1)}%</td></tr>
     </table>
     <p class="hint">建築面積は各階の部屋を上から見た広さ（バルコニー・軒は除く）。用途地域の上限と比べる目安で、正式な数字は設計者に確認します。</p>
+    ${productTable(p)}
     <h3 style="margin-top:14px">外構の数</h3>
     <table>${Object.entries(p.ext.reduce((m, it) => (m[it.type] = (m[it.type] || 0) + 1, m), {})).map(([t, n]) => `<tr><td>${esc(EXT[t]?.label || t)}</td><td class="r">${n}</td></tr>`).join('') || '<tr><td class="hint">左の一覧から置きます</td></tr>'}</table>`;
 }
@@ -1167,6 +1269,7 @@ function commit() {
 function afterSwap() {
   // プランの切替・元に戻す の後
   const p = plan();
+  registerCustoms(p).then(() => { patCache.clear(); thumbCache.clear(); if (typeof texCache !== 'undefined') texCache.clear(); dirty3d = true; edPlan.draw(); edSite.draw(); if (curTab === 'set') renderSettings(); });
   for (const ed of [edPlan, edSite]) { if (ed.fi >= p.floors.length) ed.fi = 0; if (ed.sel && !ed.obj()) ed.sel = null; }
   renderPlanSel(); renderFloorSeg(); renderSettings(); commit();
 }
@@ -1223,7 +1326,9 @@ function renderSettings() {
   });
   // 仕上げ材の見本
   const pick = (host, cat, cur, onPick, meters = 1.2) => {
-    host.innerHTML = Object.entries(cat).map(([k, m]) => `<button type="button" class="mt${k === cur ? ' on' : ''}" data-mk="${k}"><img src="${patThumb(m.pat, m.color, 96, 64, meters)}" alt=""><span>${esc(m.label)}</span></button>`).join('');
+    const groups = new Map();
+    for (const [k, m] of Object.entries(cat)) { const mk = m.maker || '一般（汎用）'; if (!groups.has(mk)) groups.set(mk, []); groups.get(mk).push([k, m]); }
+    host.innerHTML = [...groups].map(([mk, list]) => `<div class="mgrp"><div class="mk">${esc(mk)}</div><div class="mgrid">${list.map(([k, m]) => `<button type="button" class="mt${k === cur ? ' on' : ''}" data-mk="${k}"><img src="${patThumb(m.pat, m.color, 96, 64, meters)}" alt="" loading="lazy"><span>${esc(m.maker ? m.label.replace(m.series, '').replace(/^（|）$/g, '') : m.label)}</span>${m.series ? `<small>${esc(m.series)}</small>` : ''}</button>`).join('')}</div></div>`).join('');
     host.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => { pushUndo(); onPick(b.dataset.mk); commit(); renderSettings(); });
   };
   pick($('#pkExt'), EXT_WALLS, p.finish.ext, k => { p.finish.ext = k; p.colors.extWall = EXT_WALLS[k].color; }, 1.6);
@@ -1235,6 +1340,26 @@ function renderSettings() {
     ${f.ext ? `<img class="mthumb" src="${patThumb(EXT_WALLS[f.ext.key].pat, f.ext.color, 60, 30, 1.6)}" alt=""><input type="color" data-fec="${i}" value="${f.ext.color}">` : ''}</div>`).join('');
   $$('[data-fe]').forEach(el => el.onchange = () => { pushUndo(); const f = plan().floors[+el.dataset.fe]; f.ext = el.value ? { key: el.value, color: EXT_WALLS[el.value].color } : null; commit(); renderSettings(); });
   $$('[data-fec]').forEach(el => el.onchange = () => { pushUndo(); plan().floors[+el.dataset.fec].ext.color = el.value; commit(); renderSettings(); });
+  // サッシ・ドアの商品と色
+  $$('[data-swg]').forEach(el => {
+    const k = el.dataset.swg.split('.')[1], pr = p.products && p.products[k], list = SET_PRODUCTS[k];
+    const idx = pr ? list.findIndex(([m, n]) => m === pr.maker && n === pr.name) : -1;
+    el.innerHTML = `<select data-sp="${k}"><option value="">指定なし（一般）</option>${list.map(([m, n], i) => `<option value="${i}"${i === idx ? ' selected' : ''}>${esc(m)}　${esc(n)}</option>`).join('')}</select>
+      <div class="sws">${swatchBtns(k, idx >= 0 ? list[idx][2] : SWATCH[k], 'data-swp')}</div>${pr && pr.color ? `<span class="hint">${esc(pr.color)}</span>` : ''}`;
+  });
+  $$('[data-sp]').forEach(el => el.onchange = () => {
+    pushUndo(); const p2 = plan(), k = el.dataset.sp; p2.products = p2.products || {};
+    if (el.value === '') delete p2.products[k];
+    else { const [maker, name, cols] = SET_PRODUCTS[k][+el.value]; p2.products[k] = { maker, name, color: cols[0][0] }; p2.colors[k] = cols[0][1]; }
+    commit(); renderSettings();
+  });
+  $$('[data-swp]').forEach(b => b.onclick = () => {
+    pushUndo(); const p2 = plan(), k = b.dataset.swp; p2.colors[k] = b.dataset.c;
+    if (p2.products && p2.products[k]) p2.products[k].color = b.title;
+    commit(); renderSettings();
+  });
+  $('#cuList').innerHTML = (p.customMats || []).map(m => `<div class="cu"><img src="${m.img}" alt=""><div><b>${esc(m.maker || '取り込み')}</b> ${esc(m.series || '')} ${esc(m.label)}<br><span class="hint">${CUSTOM_CATS[m.cat][0]}・実寸 ${fmt(m.w)}×${fmt(m.h)}mm</span></div><button class="btn sm danger" data-cudel="${m.id}">削除</button></div>`).join('') || '<p class="hint">まだありません。</p>';
+  $$('[data-cudel]').forEach(b => b.onclick = () => { if (!confirm('この材料を削除しますか？（使っている所は標準の材料に戻ります）')) return; pushUndo(); const p2 = plan(); p2.customMats = p2.customMats.filter(m => m.id !== b.dataset.cudel); registerCustoms(p2); ensurePlan(p2); commit(); renderSettings(); });
   const st = p.site, sa = st.w * st.d / 1e6;
   $('#siteCalc').textContent = `敷地面積 ${sa.toFixed(2)}㎡（${(sa / TSUBO).toFixed(2)}坪）`;
 }
@@ -1285,15 +1410,27 @@ async function printAll() {
   const pages = [];
   p.floors.forEach((f, i) => { if (f.rooms.length) pages.push({ t: `${i + 1}階 平面図`, img: planImage(p, 'plan', i) }); });
   pages.push({ t: '外構図（配置図）', img: planImage(p, 'site', 0) });
+  let board = '';
   try {
     const v = getView();
+    const eye = v.snapshotPreset('EYE'), night = v.snapshotPreset('EYE', -1, true), bird = v.snapshotPreset('SE');
+    const site = planImage(p, 'site', 0, 2000, 1500);
+    const pl = productList(p), seen = new Set();
+    const rows = specRows(p).map(([a, b]) => `<tr><th>${esc(a)}</th><td>${esc(b)}</td></tr>`).join('')
+      + pl.filter(o => !seen.has(o.no) && seen.add(o.no)).map(o => `<tr><th><span class="no">${o.no}</span>${esc(o.where)}</th><td>${esc(o.text)}</td></tr>`).join('');
+    board = `<section class="pp board"><header><h1>${esc(p.name)}</h1><div class="t">プレゼンボード（外観・外構）</div><div class="m">__META__</div></header>
+      <div class="bd"><div class="bl"><img src="${site}" alt="配置図"><table class="spec">${rows}</table></div>
+      <div class="br"><figure><img src="${eye}" alt="外観パース"><figcaption>外観イメージ（人の目線）</figcaption></figure>
+      <figure><img src="${night}" alt="夜景"><figcaption>夜景イメージ</figcaption></figure>
+      <figure><img src="${bird}" alt="鳥瞰"><figcaption>鳥瞰イメージ</figcaption></figure></div></div>
+      <footer><span>イメージパースです。色・柄は印刷やモニターで実物と異なります。商品の色・品番は各メーカーの最新カタログで確認してください。</span><span>Livii</span></footer></section>`;
     pages.push({ t: '外観パース（南東から）', img: v.snapshotPreset('SE') });
     pages.push({ t: '外観パース（南西から）', img: v.snapshotPreset('SW') });
     pages.push({ t: '鳥瞰（1階の中）', img: v.snapshotPreset('SE', 0) });
   } catch (e) { console.warn(e); }
   const total = p.floors.reduce((s, q) => s + floorArea(q), 0);
   const meta = [p.client ? `${esc(p.client)} 様` : '', p.staff ? `担当 ${esc(p.staff)}` : '', p.createdOn ? `作成日 ${esc(p.createdOn)}` : ''].filter(Boolean).join('　');
-  $('#printArea').innerHTML = pages.map((pg, i) => `<section class="pp"><header><h1>${esc(p.name)}</h1><div class="t">${esc(pg.t)}</div><div class="m">${meta}</div></header>
+  $('#printArea').innerHTML = board.replace('__META__', meta) + pages.map((pg, i) => `<section class="pp"><header><h1>${esc(p.name)}</h1><div class="t">${esc(pg.t)}</div><div class="m">${meta}</div></header>
     <div class="im"><img src="${pg.img}" alt="${esc(pg.t)}"></div>
     <footer><span>延床面積 ${total.toFixed(2)}㎡（${(total / TSUBO).toFixed(2)}坪）　参考図・縮尺不定。設計図・施工図ではありません。</span><span>Livii　${i + 1}/${pages.length}</span></footer></section>`).join('');
   await Promise.all([...$('#printArea').querySelectorAll('img')].map(im => im.decode().catch(() => { })));
@@ -1365,12 +1502,12 @@ function startApp() {
     if (s.lower && p.floors.length > 1) p.floors[0].ext = { ...s.lower };
     commit(); renderSettings(); toast(`「${s.name}」にしました`);
   });
-  $$('[data-swg]').forEach(el => { const k = el.dataset.swg.split('.')[1]; el.innerHTML = swatchBtns(el.dataset.swg, SWATCH[k === 'sash' ? 'sash' : k === 'entrance' ? 'entrance' : 'door'], 'data-swp'); });
-  $$('[data-swp]').forEach(b => b.onclick = () => { pushUndo(); setPath(plan(), b.dataset.swp, b.dataset.c); commit(); renderSettings(); });
+
   // 3D の操作
   $$('[data-view]').forEach(b => b.onclick = () => getView().preset(b.dataset.view));
   $('#upToSel').onchange = e => { const v = getView(); v.opt.upTo = +e.target.value; v.applyVis(); };
   $('#seasonSel').onchange = e => { const v = getView(); v.opt.season = e.target.value; v.updateSun(); };
+  $('#nightChk').onchange = e => { const v = getView(); v.opt.night = e.target.checked; v.updateSun(); };
   const setHour = val => { const v = getView(); v.opt.hour = +val; v.updateSun(); const hh = Math.floor(val), mm = Math.round((val - hh) * 60); [$('#hourLbl'), $('#hourLbl2')].forEach(l => l.textContent = `${hh}:${pad2(mm)}`); $('#hourRng').value = val; $('#hourRng2').value = val; };
   $('#hourRng').oninput = e => setHour(e.target.value);
   $('#hourRng2').oninput = e => setHour(e.target.value);
@@ -1400,4 +1537,27 @@ function startApp() {
   window.addEventListener('keyup', e => { if (e.key === ' ') { edPlan.space = edSite.space = false; } });
   renderPlanSel(); renderFloorSeg(); renderSettings(); renderProps(edPlan); renderProps(edSite);
   showTab('plan');
+  registerCustoms(plan()).then(() => { patCache.clear(); thumbCache.clear(); dirty3d = true; edPlan.draw(); edSite.draw(); });
+  // テクスチャ画像の取り込み
+  $('#cuAdd').onclick = () => {
+    const f = $('#cuFile').files[0];
+    if (!f) return toast('画像ファイルを選んでください');
+    const w = num($('#cuW').value, 0), h = num($('#cuH').value, 0);
+    if (w < 50 || h < 50) return toast('実物の大きさ（mm）を入れてください');
+    const fr = new FileReader();
+    fr.onload = () => {
+      const im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, 512 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
+        cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+        const p = plan(); pushUndo();
+        p.customMats.push({ id: 'cu_' + uid(), cat: $('#cuCat').value, maker: $('#cuMaker').value.trim(), series: $('#cuSeries').value.trim(), label: $('#cuLabel').value.trim() || f.name.replace(/\.[^.]+$/, ''), w, h, img: cv.toDataURL('image/jpeg', .82) });
+        registerCustoms(p).then(() => { commit(); renderSettings(); toast('取り込みました。外壁・屋根などの一覧の「' + (p.customMats[p.customMats.length - 1].maker || '取り込み') + '」から選べます'); });
+        $('#cuFile').value = '';
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  };
 }

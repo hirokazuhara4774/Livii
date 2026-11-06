@@ -98,12 +98,13 @@
     <div class="grp"><span class="lb">視点</span>
       <button class="btn sm" data-view="SE">南東</button><button class="btn sm" data-view="SW">南西</button>
       <button class="btn sm" data-view="NE">北東</button><button class="btn sm" data-view="NW">北西</button>
-      <button class="btn sm" data-view="S">正面（南）</button><button class="btn sm" data-view="TOP">真上</button>
+      <button class="btn sm" data-view="S">正面（南）</button><button class="btn sm" data-view="TOP">真上</button><button class="btn sm" data-view="EYE">人の目線</button>
     </div>
     <div class="grp"><span class="lb">表示</span><select id="upToSel"></select></div>
     <div class="grp"><span class="lb">日当たり</span>
       <select id="seasonSel"><option value="summer">夏至</option><option value="equinox" selected>春分・秋分</option><option value="winter">冬至</option></select>
       <input type="range" id="hourRng" min="6" max="18" step="0.5" value="10"><span id="hourLbl" class="num">10:00</span>
+      <label class="chk"><input type="checkbox" id="nightChk">夜景（照明）</label>
     </div>
     <div class="grp"><button class="btn sm" id="bShot1">画像を保存</button></div>
   </div>
@@ -204,6 +205,21 @@
       </div>
     </div>
     <div class="card">
+      <h2>メーカーのテクスチャ画像を取り込む <span class="sub">各社の CAD・テクスチャデータ（利用が許可されたもの）や、実物を撮った写真を材料にできます</span></h2>
+      <div class="grid">
+        <label class="f">画像ファイル<input type="file" id="cuFile" accept="image/*"></label>
+        <label class="f">種類<select id="cuCat"><option value="ext">外壁</option><option value="roof">屋根</option><option value="wall">壁紙</option><option value="floor">床</option><option value="pave">舗装</option></select></label>
+        <label class="f">メーカー<input type="text" id="cuMaker" placeholder="例：ニチハ"></label>
+        <label class="f">シリーズ<input type="text" id="cuSeries" placeholder="例：モエンエクセラード16"></label>
+        <label class="f">柄・色・品番<input type="text" id="cuLabel" placeholder="例：〇〇調 ホワイト"></label>
+        <label class="f">画像1枚分の実物の横幅<div class="u"><input type="number" id="cuW" value="910" step="10"><span>mm</span></div></label>
+        <label class="f">画像1枚分の実物の高さ<div class="u"><input type="number" id="cuH" value="455" step="10"><span>mm</span></div></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="cuAdd">取り込む</button></div>
+      <p class="hint">画像は 512px に縮めてこのプランの中に保存します（書き出しの .json にも入ります）。カタログの写真をそのまま使うときは、メーカーの利用条件を確認してください。</p>
+      <div id="cuList"></div>
+    </div>
+    <div class="card">
       <h2>内装（家全体の標準） <span class="sub">部屋ごとの床・壁紙・アクセントクロスは「間取り」で部屋を選んで変えます</span></h2>
       <h3>壁紙（クロス）</h3>
       <div class="mpick" id="pkWall"></div>
@@ -220,6 +236,7 @@
 
 <script src="lib/three.min.js"></script>
 <script src="materials.js"></script>
+<script src="products.js"></script>
 <script src="app.js"></script>
 <script src="view3d.js"></script>
 <script>startApp();</script>

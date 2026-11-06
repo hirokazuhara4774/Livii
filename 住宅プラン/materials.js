@@ -402,7 +402,8 @@ function patCanvas(pat, color) {
   const W = pot(def.tw * 380), H = pot(def.th * 380);
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const c = cv.getContext('2d'), R = mulberry(hashStr(key));
-  if (def.raw) { const img = c.createImageData(W, H); def.draw(img, W, H, color, R); c.putImageData(img, 0, 0); }
+  if (def.image) { c.fillStyle = color; c.fillRect(0, 0, W, H); if (def.image.complete && def.image.naturalWidth) c.drawImage(def.image, 0, 0, W, H); }
+  else if (def.raw) { const img = c.createImageData(W, H); def.draw(img, W, H, color, R); c.putImageData(img, 0, 0); }
   else { c.scale(W / def.tw, H / def.th); def.draw(c, def.tw, def.th, color, R); }
   const out = { cv, tw: def.tw, th: def.th };
   patCache.set(key, out);
