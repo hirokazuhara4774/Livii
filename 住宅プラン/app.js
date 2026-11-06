@@ -29,81 +29,150 @@ const OPENINGS = {
   small:    { label: '小窓',           w: 600,  h: 600,  sill: 1400 },
   high:     { label: '高窓（FIX）',    w: 1650, h: 450,  sill: 1800 },
 };
+// 家具・設備（cat は左の一覧の見出し。w,d,h は mm）
+const FURN_CATS = ['リビング', 'ダイニング・キッチン', '寝室・書斎', '水まわり', '和室・収納・その他'];
 const FURN = {
-  bedS:     { label: 'ベッド（シングル）', w: 970,  d: 1950, h: 450,  color: '#e6e1d6' },
-  bedD:     { label: 'ベッド（ダブル）',   w: 1400, d: 1950, h: 450,  color: '#e6e1d6' },
-  sofa2:    { label: 'ソファ（2人）',      w: 1600, d: 850,  h: 800,  color: '#8a8f96' },
-  sofa3:    { label: 'ソファ（3人）',      w: 2000, d: 900,  h: 800,  color: '#8a8f96' },
-  dining:   { label: 'ダイニングセット',   w: 1500, d: 1650, h: 720,  color: '#9b7653' },
-  lowtable: { label: 'ローテーブル',       w: 1000, d: 500,  h: 400,  color: '#9b7653' },
-  tv:       { label: 'テレビボード',       w: 1800, d: 450,  h: 450,  color: '#6b5642' },
-  kitchen:  { label: 'キッチン（壁付け）', w: 2550, d: 650,  h: 850,  color: '#f2f0eb' },
-  island:   { label: 'キッチン（対面）',   w: 2550, d: 1000, h: 850,  color: '#f2f0eb' },
-  fridge:   { label: '冷蔵庫',             w: 700,  d: 700,  h: 1800, color: '#d9dadb' },
-  cupboard: { label: '食器棚',             w: 1200, d: 450,  h: 2000, color: '#e8e2d6' },
-  bath:     { label: '浴槽',               w: 1600, d: 800,  h: 550,  color: '#f7f7f5' },
-  basin:    { label: '洗面台',             w: 750,  d: 550,  h: 850,  color: '#f2f0eb' },
-  washer:   { label: '洗濯機',             w: 640,  d: 640,  h: 1000, color: '#eceeef' },
-  toilet:   { label: 'トイレ',             w: 400,  d: 700,  h: 800,  color: '#f7f7f5' },
-  desk:     { label: 'デスク・チェア',     w: 1000, d: 1100, h: 720,  color: '#a8835f' },
-  shelf:    { label: '本棚',               w: 900,  d: 350,  h: 1800, color: '#c9b293' },
-  wardrobe: { label: '収納棚',             w: 1800, d: 600,  h: 2000, color: '#ece6da' },
-  shoes:    { label: '下駄箱',             w: 1200, d: 400,  h: 1000, color: '#ece6da' },
-  stairs:   { label: '階段（直階段）',     w: 780,  d: 3400, h: 2900, color: '#b48d67' },
-  plant:    { label: '観葉植物',           w: 450,  d: 450,  h: 1200, color: '#4f8a4a' },
-  rug:      { label: 'ラグ',               w: 2000, d: 1400, h: 10,   color: '#d8cdb8' },
+  sofa2:     { cat: 0, label: 'ソファ（2人）',        w: 1600, d: 850,  h: 800,  color: '#8a8f96' },
+  sofa3:     { cat: 0, label: 'ソファ（3人）',        w: 2000, d: 900,  h: 800,  color: '#8a8f96' },
+  sofaL:     { cat: 0, label: 'ソファ（L字）',        w: 2400, d: 1600, h: 800,  color: '#b9ae9c' },
+  armchair:  { cat: 0, label: '1人掛けソファ',        w: 800,  d: 850,  h: 800,  color: '#b4664a' },
+  ottoman:   { cat: 0, label: 'オットマン',           w: 600,  d: 450,  h: 400,  color: '#8a8f96' },
+  lowtable:  { cat: 0, label: 'ローテーブル',         w: 1000, d: 500,  h: 400,  color: '#9b7653' },
+  sidetable: { cat: 0, label: 'サイドテーブル',       w: 450,  d: 450,  h: 550,  color: '#6b4c35' },
+  tv:        { cat: 0, label: 'テレビボード',         w: 1800, d: 450,  h: 450,  color: '#6b5642' },
+  sideboard: { cat: 0, label: 'サイドボード',         w: 1500, d: 450,  h: 750,  color: '#a8835f' },
+  shelf:     { cat: 0, label: '本棚',                 w: 900,  d: 350,  h: 1800, color: '#c9b293' },
+  rug:       { cat: 0, label: 'ラグ',                 w: 2000, d: 1400, h: 10,   color: '#d8cdb8' },
+  plant:     { cat: 0, label: '観葉植物',             w: 450,  d: 450,  h: 1200, color: '#4f8a4a' },
+  floorlamp: { cat: 0, label: 'フロアライト',         w: 400,  d: 400,  h: 1600, color: '#d8cbb3' },
+  pendant:   { cat: 0, label: 'ペンダントライト',     w: 400,  d: 400,  h: 300,  color: '#2b2b2b', above: 1 },
+  aircon:    { cat: 0, label: 'エアコン',             w: 800,  d: 250,  h: 300,  color: '#f4f4f2', above: 1 },
+  piano:     { cat: 0, label: 'ピアノ',               w: 1530, d: 620,  h: 1250, color: '#1d1d1d' },
+  dining2:   { cat: 1, label: 'ダイニング（2人）',    w: 800,  d: 1450, h: 720,  color: '#9b7653' },
+  dining:    { cat: 1, label: 'ダイニング（4人）',    w: 1500, d: 1650, h: 720,  color: '#9b7653' },
+  dining6:   { cat: 1, label: 'ダイニング（6人）',    w: 1800, d: 1650, h: 720,  color: '#9b7653' },
+  roundtable:{ cat: 1, label: '丸テーブル（4人）',    w: 1700, d: 1700, h: 720,  color: '#c49a6c' },
+  stools:    { cat: 1, label: 'カウンタースツール',   w: 1200, d: 450,  h: 650,  color: '#2b2b2b' },
+  kitchen:   { cat: 1, label: 'キッチン（壁付け）',   w: 2550, d: 650,  h: 850,  color: '#f2f0eb' },
+  island:    { cat: 1, label: 'キッチン（対面）',     w: 2550, d: 1000, h: 850,  color: '#f2f0eb' },
+  kitchenL:  { cat: 1, label: 'キッチン（L型）',      w: 2550, d: 1650, h: 850,  color: '#f2f0eb' },
+  islandFree:{ cat: 1, label: 'アイランドキッチン',   w: 2550, d: 1000, h: 850,  color: '#3b3d40' },
+  fridge:    { cat: 1, label: '冷蔵庫',               w: 700,  d: 700,  h: 1800, color: '#d9dadb' },
+  cupboard:  { cat: 1, label: '食器棚',               w: 1200, d: 450,  h: 2000, color: '#e8e2d6' },
+  appliance: { cat: 1, label: '家電収納',             w: 900,  d: 450,  h: 2000, color: '#e8e2d6' },
+  bedS:      { cat: 2, label: 'ベッド（シングル）',   w: 970,  d: 1950, h: 450,  color: '#e6e1d6' },
+  bedSD:     { cat: 2, label: 'ベッド（セミダブル）', w: 1220, d: 1950, h: 450,  color: '#e6e1d6' },
+  bedD:      { cat: 2, label: 'ベッド（ダブル）',     w: 1400, d: 1950, h: 450,  color: '#e6e1d6' },
+  bedQ:      { cat: 2, label: 'ベッド（クイーン）',   w: 1600, d: 1950, h: 450,  color: '#e6e1d6' },
+  bunk:      { cat: 2, label: '2段ベッド',            w: 1000, d: 2050, h: 1600, color: '#c49a6c' },
+  chest:     { cat: 2, label: 'チェスト',             w: 900,  d: 450,  h: 1000, color: '#a8835f' },
+  dresser:   { cat: 2, label: 'ドレッサー',           w: 800,  d: 800,  h: 1400, color: '#f1efea' },
+  wardrobe:  { cat: 2, label: '収納棚',               w: 1800, d: 600,  h: 2000, color: '#ece6da' },
+  hanger:    { cat: 2, label: 'ハンガーパイプ（服）', w: 1800, d: 600,  h: 1800, color: '#c0c0bd' },
+  desk:      { cat: 2, label: 'デスク・チェア',       w: 1000, d: 1100, h: 720,  color: '#a8835f' },
+  unitbath:  { cat: 3, label: 'ユニットバス（1616）', w: 1600, d: 1600, h: 2000, color: '#f4f4f2' },
+  bath:      { cat: 3, label: '浴槽',                 w: 1600, d: 800,  h: 550,  color: '#f7f7f5' },
+  basin:     { cat: 3, label: '洗面台',               w: 750,  d: 550,  h: 850,  color: '#f2f0eb' },
+  basin2:    { cat: 3, label: '洗面台（2ボウル）',    w: 1500, d: 550,  h: 850,  color: '#f2f0eb' },
+  washer:    { cat: 3, label: '洗濯機',               w: 640,  d: 640,  h: 1000, color: '#eceeef' },
+  toilet:    { cat: 3, label: 'トイレ',               w: 400,  d: 700,  h: 800,  color: '#f7f7f5' },
+  toiletTl:  { cat: 3, label: 'トイレ（タンクレス）', w: 400,  d: 650,  h: 600,  color: '#f7f7f5' },
+  handwash:  { cat: 3, label: '手洗い器',             w: 450,  d: 300,  h: 850,  color: '#f7f7f5' },
+  zataku:    { cat: 4, label: '座卓',                 w: 1200, d: 750,  h: 330,  color: '#5a4232' },
+  butsudan:  { cat: 4, label: '仏壇',                 w: 600,  d: 500,  h: 1400, color: '#3b2a1f' },
+  tansu:     { cat: 4, label: '和箪笥',               w: 1000, d: 450,  h: 1100, color: '#8a5a36' },
+  shoes:     { cat: 4, label: '下駄箱',               w: 1200, d: 400,  h: 1000, color: '#ece6da' },
+  shoesTall: { cat: 4, label: '下駄箱（トール）',     w: 900,  d: 400,  h: 2100, color: '#ece6da' },
+  stairs:    { cat: 4, label: '階段（直階段）',       w: 780,  d: 3400, h: 2900, color: '#b48d67' },
 };
+// 外構（mat：仕上げ PAVINGS。round：上から見て丸い）
+const EXT_CATS = ['床・舗装', '塀・門まわり', 'カーポート・物置', '植栽', '設備・その他'];
 const EXT = {
-  parking:  { label: '駐車場（コンクリート）', w: 5500, d: 5500, h: 100,  color: '#c4c2bc', flat: 1 },
-  lawn:     { label: '芝生',                 w: 4000, d: 3000, h: 30,   color: '#7fa650', flat: 1 },
-  approach: { label: 'アプローチ（タイル）', w: 1200, d: 4000, h: 60,   color: '#cdbca6', flat: 1 },
-  gravel:   { label: '砂利',                 w: 2000, d: 2000, h: 40,   color: '#bdb7ab', flat: 1 },
-  deck:     { label: 'ウッドデッキ',         w: 2730, d: 1820, h: 400,  color: '#a3764f', flat: 1 },
-  terrace:  { label: 'タイルテラス',         w: 2730, d: 1820, h: 400,  color: '#d6cdbf', flat: 1 },
-  flowerbed:{ label: '花壇',                 w: 1800, d: 450,  h: 400,  color: '#a35d40', flat: 1 },
-  fence:    { label: 'フェンス',             w: 5000, d: 60,   h: 1200, color: '#5d5249' },
-  block:    { label: 'ブロック塀',           w: 5000, d: 120,  h: 1000, color: '#d0cdc5' },
-  hedge:    { label: '生垣',                 w: 3000, d: 500,  h: 1200, color: '#4f7a3a' },
-  gatepost: { label: '門柱',                 w: 800,  d: 250,  h: 1400, color: '#3f3d3a' },
-  carport:  { label: 'カーポート',           w: 3000, d: 5000, h: 2300, color: '#b8bcc0' },
-  storage:  { label: '物置',                 w: 1800, d: 900,  h: 1900, color: '#cfd2d4' },
-  tree:     { label: '高木',                 w: 2000, d: 2000, h: 4000, color: '#5c8a45', round: 1 },
-  conifer:  { label: '高木（針葉樹）',       w: 1200, d: 1200, h: 3500, color: '#3e6b3a', round: 1 },
-  shrub:    { label: '低木',                 w: 800,  d: 800,  h: 700,  color: '#6b9a4e', round: 1 },
-  car:      { label: '車（参考）',           w: 1700, d: 4500, h: 1500, color: '#8796a8' },
+  parking:    { cat: 0, label: '駐車場（コンクリート）', w: 5500, d: 5500, h: 100,  mat: 'concJoint', flat: 1 },
+  approach:   { cat: 0, label: 'アプローチ（タイル）', w: 1200, d: 4000, h: 60,   mat: 'tilePave', flat: 1 },
+  interlock:  { cat: 0, label: 'インターロッキング',   w: 1500, d: 3000, h: 60,   mat: 'interlock', flat: 1 },
+  stonePave:  { cat: 0, label: '乱形石',               w: 1500, d: 1500, h: 60,   mat: 'stoneP', flat: 1 },
+  lawn:       { cat: 0, label: '芝生',                 w: 4000, d: 3000, h: 30,   mat: 'lawn', flat: 1 },
+  turf:       { cat: 0, label: '人工芝',               w: 3000, d: 2000, h: 30,   mat: 'turf', flat: 1 },
+  gravel:     { cat: 0, label: '砂利',                 w: 2000, d: 2000, h: 40,   mat: 'gravel', flat: 1 },
+  deck:       { cat: 0, label: 'ウッドデッキ',         w: 2730, d: 1820, h: 400,  mat: 'deckP', flat: 1 },
+  terrace:    { cat: 0, label: 'タイルテラス',         w: 2730, d: 1820, h: 400,  mat: 'tilePave', flat: 1 },
+  stepping:   { cat: 0, label: '飛び石',               w: 2400, d: 400,  h: 50,   color: '#9a958c', flat: 1 },
+  sleepers:   { cat: 0, label: '枕木',                 w: 1800, d: 600,  h: 80,   color: '#5c4632', flat: 1 },
+  steps:      { cat: 0, label: '階段（外・3段）',      w: 1800, d: 900,  h: 450,  color: '#c4c2bc', flat: 1 },
+  flowerbed:  { cat: 0, label: '花壇',                 w: 1800, d: 450,  h: 400,  color: '#a35d40', flat: 1 },
+  fence:      { cat: 1, label: 'フェンス（横格子）',   w: 5000, d: 60,   h: 1200, color: '#5d5249' },
+  fenceTall:  { cat: 1, label: '目隠しフェンス',       w: 4000, d: 60,   h: 1800, color: '#6b5a4a' },
+  meshFence:  { cat: 1, label: 'メッシュフェンス',     w: 5000, d: 50,   h: 800,  color: '#4f5a52' },
+  block:      { cat: 1, label: 'ブロック塀',           w: 5000, d: 120,  h: 1000, color: '#d0cdc5' },
+  blockFence: { cat: 1, label: 'ブロック＋フェンス',   w: 5000, d: 120,  h: 1400, color: '#3f3d3a' },
+  plasterWall:{ cat: 1, label: '塗り壁の塀',           w: 3000, d: 150,  h: 1200, color: '#e9e3d6' },
+  hedge:      { cat: 1, label: '生垣',                 w: 3000, d: 500,  h: 1200, color: '#4f7a3a' },
+  gatepost:   { cat: 1, label: '門柱',                 w: 800,  d: 250,  h: 1400, color: '#3f3d3a' },
+  funcpost:   { cat: 1, label: '機能門柱',             w: 400,  d: 200,  h: 1300, color: '#3a3a3a' },
+  gate:       { cat: 1, label: '門扉（両開き）',       w: 1600, d: 100,  h: 1200, color: '#3f3d3a' },
+  mailbox:    { cat: 1, label: 'ポスト（スタンド）',   w: 400,  d: 300,  h: 1100, color: '#2b2b2b' },
+  delivery:   { cat: 1, label: '宅配ボックス',         w: 450,  d: 450,  h: 1000, color: '#8b8f93' },
+  carport:    { cat: 2, label: 'カーポート（1台）',    w: 3000, d: 5000, h: 2300, color: '#b8bcc0' },
+  carport2:   { cat: 2, label: 'カーポート（2台）',    w: 5400, d: 5000, h: 2300, color: '#b8bcc0' },
+  cycleport:  { cat: 2, label: 'サイクルポート',       w: 2200, d: 1200, h: 2100, color: '#b8bcc0' },
+  terraceRoof:{ cat: 2, label: 'テラス屋根',           w: 3600, d: 1800, h: 2400, color: '#b8bcc0' },
+  pergola:    { cat: 2, label: 'パーゴラ',             w: 2700, d: 2700, h: 2400, color: '#7a5a3e' },
+  storage:    { cat: 2, label: '物置',                 w: 1800, d: 900,  h: 1900, color: '#cfd2d4' },
+  tree:       { cat: 3, label: '落葉樹（シンボルツリー）', w: 2000, d: 2000, h: 4000, color: '#6f9a4f', round: 1 },
+  evergreen:  { cat: 3, label: '常緑樹',               w: 1800, d: 1800, h: 3000, color: '#3f6e3a', round: 1 },
+  conifer:    { cat: 3, label: '高木（針葉樹）',       w: 1200, d: 1200, h: 3500, color: '#3e6b3a', round: 1 },
+  shrub:      { cat: 3, label: '低木',                 w: 800,  d: 800,  h: 700,  color: '#6b9a4e', round: 1 },
+  flowers:    { cat: 3, label: '草花',                 w: 1200, d: 600,  h: 300,  color: '#d76f8f', flat: 1 },
+  planter:    { cat: 3, label: 'プランター',           w: 600,  d: 300,  h: 700,  color: '#8a6b4f' },
+  poleLight:  { cat: 4, label: 'ポールライト',         w: 150,  d: 150,  h: 800,  color: '#2b2b2b' },
+  faucet:     { cat: 4, label: '立水栓',               w: 300,  d: 300,  h: 900,  color: '#9a958c' },
+  outdoorUnit:{ cat: 4, label: 'エアコン室外機',       w: 800,  d: 300,  h: 600,  color: '#d9dadb' },
+  heater:     { cat: 4, label: '給湯器（貯湯タンク）', w: 650,  d: 750,  h: 2100, color: '#e4e5e3' },
+  clothesline:{ cat: 4, label: '物干し',               w: 2400, d: 500,  h: 1800, color: '#c0c0bd' },
+  gardenSet:  { cat: 4, label: 'ガーデンテーブルセット', w: 1500, d: 1500, h: 720, color: '#4a4a48' },
+  parasol:    { cat: 4, label: 'パラソル',             w: 2400, d: 2400, h: 2400, color: '#e9e3d6', round: 1 },
+  bench:      { cat: 4, label: 'ベンチ',               w: 1500, d: 500,  h: 800,  color: '#8a6b4f' },
+  car:        { cat: 4, label: '車（参考）',           w: 1700, d: 4500, h: 1500, color: '#8796a8' },
+  bike:       { cat: 4, label: '自転車',               w: 600,  d: 1800, h: 1000, color: '#3b5f8a' },
 };
 const ROOM_NAMES = ['LDK', 'リビング', 'ダイニング', 'キッチン', '洋室', '和室', '主寝室', '子ども部屋1', '子ども部屋2', '書斎',
   '玄関', 'ホール', '廊下', '階段', '洗面所', '浴室', 'トイレ', 'WIC', 'クローゼット', '収納', 'パントリー', '納戸', 'ランドリー',
-  'バルコニー', 'ポーチ', 'テラス'];
-const FLOOR_MATS = {
-  oak:    { label: 'フローリング（ナチュラル）', color: '#c9a27a' },
-  walnut: { label: 'フローリング（ダーク）',     color: '#7b5a40' },
-  white:  { label: 'フローリング（ホワイト）',   color: '#e2d6c3' },
-  tatami: { label: '畳',                         color: '#c8c58c' },
-  tile:   { label: 'タイル',                     color: '#d3d0c9' },
-  cf:     { label: 'クッションフロア',           color: '#e7e3da' },
-};
+  'シューズクローク', 'ファミリークローゼット', 'バルコニー', 'ポーチ', 'テラス'];
 const OUTDOOR = new Set(['バルコニー', 'ポーチ', 'テラス']);   // 床面積に入れない・屋根をかけない
 const isIn = r => !OUTDOOR.has(r.name);
 function defaultFloor(name) {
   if (name === '和室') return 'tatami';
   if (['玄関', '浴室', 'ポーチ', 'テラス', 'バルコニー'].includes(name)) return 'tile';
   if (['洗面所', 'トイレ', 'ランドリー'].includes(name)) return 'cf';
+  if (name === 'シューズクローク') return 'mortar';
   return 'oak';
 }
+function defaultPaper(name) {
+  if (name === '和室') return 'washi';
+  if (name === '浴室') return 'tilew';
+  return '';
+}
+const DIRS = { N: '北', S: '南', E: '東', W: '西' };
+// 外観の組み合わせ（lower：1階だけ別の外壁）
 const SCHEMES = [
-  { name: 'ホワイト×ブラック',   extWall: '#efede8', roof: '#2f3236', sash: '#2b2b2b' },
-  { name: 'ベージュ×ブラウン',   extWall: '#e3d6c1', roof: '#5a4a3c', sash: '#6a5444' },
-  { name: 'グレー×ネイビー',     extWall: '#a9adb0', roof: '#26324a', sash: '#2b2b2b' },
-  { name: 'ネイビー×シルバー',   extWall: '#34405a', roof: '#8c9196', sash: '#c8cbce' },
-  { name: 'ブラック',             extWall: '#38383a', roof: '#2a2a2c', sash: '#1f1f1f' },
+  { name: 'ホワイト×ブラック',     ext: 'siding_h', extWall: '#ebe8e1', roof: 'galva',    roofC: '#2f3236', sash: '#2b2b2b' },
+  { name: 'ツートン（タイル×白）', ext: 'siding_h', extWall: '#ebe8e1', roof: 'slate',    roofC: '#34373b', sash: '#2b2b2b', lower: { key: 'tile', color: '#8c7a66' } },
+  { name: 'モダン（ガルバ×木）',   ext: 'galva_v',  extWall: '#3a3d40', roof: 'galva',    roofC: '#2f3236', sash: '#2b2b2b', lower: { key: 'siding_wd', color: '#9a7350' } },
+  { name: '塗り壁ナチュラル',       ext: 'stucco',   extWall: '#efe9de', roof: 'galva',    roofC: '#4a4743', sash: '#4a3a30' },
+  { name: '南欧風',                 ext: 'stucco',   extWall: '#f1e6cf', roof: 'stile',    roofC: '#a9583b', sash: '#4a3a30' },
+  { name: '和モダン',               ext: 'stucco',   extWall: '#e6e1d6', roof: 'kawara',   roofC: '#5c6168', sash: '#4a3a30', lower: { key: 'cedar', color: '#2e2b28' } },
+  { name: 'レンガ調',               ext: 'siding_br', extWall: '#9b5a43', roof: 'flattile', roofC: '#3c3e41', sash: '#4a3a30' },
+  { name: 'ネイビー×シルバー',     ext: 'siding_v', extWall: '#34405a', roof: 'galva',    roofC: '#8b9094', sash: '#b9bcbf' },
 ];
 
 /* ===== データ ===== */
 function newFloor() { return { h: 2900, ceil: 2400, rooms: [], walls: [], openings: [], items: [] }; }
 function mkItem(cat, type, x, y, rot = 0, extra = {}) {
   const c = cat[type];
-  return Object.assign({ id: uid(), type, x, y, w: c.w, d: c.d, h: c.h, rot, color: c.color }, extra);
+  const it = { id: uid(), type, x, y, w: c.w, d: c.d, h: c.h, rot, color: c.color || (c.mat ? PAVINGS[c.mat].color : '#999999') };
+  if (c.mat) it.mat = c.mat;
+  return Object.assign(it, extra);
 }
 function mkOpening(type, dir, x, y, extra = {}) {
   const c = OPENINGS[type];
@@ -117,9 +186,27 @@ function newPlan(sample) {
     floors: [newFloor(), newFloor()],
     ext: [],
     roof: { type: 'gable', pitch: 4, overhang: 600, rotate: false, flip: false },
-    colors: { extWall: '#efede8', roof: '#2f3236', sash: '#2b2b2b', intWall: '#f3f1ec', ceiling: '#fbfbf8', door: '#b48d67', ground: '#c9bfa8' },
   };
+  ensurePlan(p);
   if (sample) fillSample(p);
+  return p;
+}
+// 足りない項目を初期値で補う（古いデータ・読み込んだデータ用）
+function ensurePlan(p) {
+  p.finish = Object.assign({ ext: 'siding_h', roof: 'slate', wall: 'white', ceil: 'white' }, p.finish || {});
+  if (!EXT_WALLS[p.finish.ext]) p.finish.ext = 'siding_h';
+  if (!ROOF_MATS[p.finish.roof]) p.finish.roof = 'slate';
+  if (!WALLPAPERS[p.finish.wall]) p.finish.wall = 'white';
+  if (!WALLPAPERS[p.finish.ceil]) p.finish.ceil = 'white';
+  p.colors = Object.assign({ extWall: EXT_WALLS[p.finish.ext].color, roof: ROOF_MATS[p.finish.roof].color, sash: '#2b2b2b',
+    door: '#c49a6c', entrance: '#2e2c2a', soffit: '#e9e6df', ground: '#c9bfa8' }, p.colors || {});
+  p.ext = p.ext || [];
+  p.roof = Object.assign({ type: 'gable', pitch: 4, overhang: 600, rotate: false, flip: false }, p.roof || {});
+  (p.floors || []).forEach(f => {
+    f.rooms = f.rooms || []; f.walls = f.walls || []; f.openings = f.openings || []; f.items = f.items || [];
+    f.rooms.forEach(r => { if (!FLOOR_MATS[r.floor]) r.floor = defaultFloor(r.name); });
+  });
+  p.ext.forEach(it => { if (EXT[it.type]?.mat && !PAVINGS[it.mat]) it.mat = EXT[it.type].mat; });
   return p;
 }
 function fillSample(p) {
@@ -149,6 +236,20 @@ function fillSample(p) {
     O('door', 'v', 2, 1), O('opening', 'v', 6, 3.5, { w: 700 })];
   f2.items = [F('bedD', 7280, 4690), F('bedS', 560, 4690), F('desk', 2000, 6655, 180), F('bedS', 4900, 4690),
     F('desk', 3600, 6655, 180), F('desk', 7735, 625), F('shelf', 9100 - 75 - 175, 1000, 90), F('wardrobe', 8190, 1820 + 75 + 300)];
+  // 内装：アクセントクロス・和室・浴室
+  const room = (f, name) => f.rooms.filter(r => r.name === name).sort((a, b) => b.w * b.d - a.w * a.d)[0];
+  Object.assign(room(f1, 'LDK'), { accent: 'E', accentPaper: 'wooddk' });
+  Object.assign(room(f1, '和室'), { paper: 'juraku' });
+  Object.assign(room(f1, '浴室'), { paper: 'tilew' });
+  Object.assign(room(f2, '主寝室'), { accent: 'N', accentPaper: 'navy', floor: 'greige' });
+  Object.assign(room(f2, '子ども部屋1'), { accent: 'W', accentPaper: 'blue' });
+  Object.assign(room(f2, '子ども部屋2'), { accent: 'E', accentPaper: 'pink' });
+  f1.items.push(F('pendant', 7735, 2300, 0), F('aircon', 4400, 3640 + 75 + 125, 0), F('rug', 6900, 5460, 90, { w: 2000, d: 1400 }));
+  f1.items.unshift(f1.items.pop());   // ラグは一番下に描く
+  f2.items.push(F('aircon', 7280, 3640 + 75 + 125, 0), F('chest', 9100 - 75 - 225, 6800, 90));
+  // 外観：1階タイル＋2階サイディングのツートン
+  p.finish.roof = 'galva'; p.colors.roof = ROOF_MATS.galva.color;
+  f1.ext = { key: 'tile', color: '#8c7a66' };
   p.ext = [
     E('parking', 2730, 15470, 0, { w: 5460, d: 5460 }), E('approach', 1820, 9555, 0, { w: 1820, d: 6370 }),
     E('lawn', 10465, 15925, 0, { w: 9100, d: 4550 }), E('deck', 9555, 12513, 0, { w: 3640, d: 1365 }),
@@ -158,10 +259,14 @@ function fillSample(p) {
     E('storage', 14105, 910), E('tree', 14378, 13650), E('tree', 728, 2730, 0, { w: 1600, d: 1600, h: 3200 }),
     E('conifer', 14560, 4500), E('shrub', 6300, 17650), E('shrub', 14100, 17600), E('shrub', 12900, 17650),
     E('car', 1365, 16380), E('car', 4095, 16380, 0, { color: '#c9c9c6' }),
+    E('funcpost', 2900, 13500), E('poleLight', 1000, 11000), E('poleLight', 1000, 8200),
+    E('stepping', 13300, 15200, 90, { w: 2400 }), E('outdoorUnit', 11300, 4550 - 250, 0), E('heater', 6200, 4550 - 420, 0),
+    E('gardenSet', 13200, 17000), E('flowers', 9555, 13450, 0, { w: 3640, d: 400 }),
   ];
 }
 
 let store = load();
+store.plans.forEach(ensurePlan);
 function load() {
   try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.plans && s.plans.length) return s; } catch (e) { /* 壊れていたら作り直す */ }
   const p = newPlan(true);
@@ -439,14 +544,18 @@ function drawItem(ctx, v, it, isExt, faint) {
     if (it.type !== 'shrub') { ctx.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * w / 2 * .8, Math.sin(a) * w / 2 * .8); } ctx.stroke(); }
     ctx.restore(); return;
   }
-  if (isExt) { ctx.fillStyle = hexA(col, c.flat ? .5 : .75); ctx.strokeStyle = hexA(col, 1); }
-  else { ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#6a6964'; }
-  if (it.type === 'carport') { ctx.fillStyle = hexA(col, .15); }
+  const pv = isExt && PAVINGS[it.mat || c.mat];
+  if (isExt) { ctx.fillStyle = pv ? canvasPat(ctx, pv.pat, col, v.s * 1000, -w / 2, -d / 2) : hexA(col, c.flat ? .5 : .75); ctx.strokeStyle = shade(col, -.35); }
+  else { ctx.fillStyle = it.type === 'rug' ? hexA(col, .55) : '#ffffff'; ctx.strokeStyle = '#6a6964'; }
+  if (['carport', 'carport2', 'cycleport', 'terraceRoof', 'pergola'].includes(it.type)) { ctx.fillStyle = hexA(col, .15); }
+  if (c.above) { ctx.setLineDash([3, 3]); ctx.fillStyle = 'rgba(255,255,255,.6)'; }
+  if (['stepping', 'flowers', 'sleepers'].includes(it.type)) ctx.fillStyle = 'rgba(0,0,0,0)';
   ctx.fillRect(-w / 2, -d / 2, w, d); ctx.strokeRect(-w / 2, -d / 2, w, d);
+  ctx.setLineDash([]);
   ctx.strokeStyle = isExt ? hexA(col, 1) : '#6a6964';
   const T = it.type;
   ctx.beginPath();
-  if (!isExt && !['dining', 'lowtable', 'rug', 'plant', 'stairs', 'desk'].includes(T)) { // 背面
+  if (!isExt && !['dining', 'dining2', 'dining6', 'roundtable', 'lowtable', 'sidetable', 'zataku', 'rug', 'plant', 'floorlamp', 'pendant', 'stairs', 'desk', 'stools', 'ottoman', 'islandFree'].includes(T)) { // 背面
     ctx.lineWidth = 2.2; ctx.moveTo(-w / 2, -d / 2); ctx.lineTo(w / 2, -d / 2); ctx.stroke(); ctx.lineWidth = 1; ctx.beginPath();
   }
   if (T === 'stairs') {
@@ -484,6 +593,36 @@ function drawItem(ctx, v, it, isExt, faint) {
   } else if (T === 'fence') {
     const n = Math.max(1, Math.round(it.w / 2000));
     for (let k = 0; k <= n; k++) { const x = -w / 2 + w * k / n; ctx.rect(x - 2, -3, 4, 6); }
+  } else if (T === 'roundtable' || T === 'gardenSet') {
+    const r = Math.min(w, d) * .3; ctx.moveTo(r, 0); ctx.arc(0, 0, r, 0, Math.PI * 2);
+    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4, cx = Math.cos(a) * r * 1.55, cy = Math.sin(a) * r * 1.55; ctx.moveTo(cx + r * .4, cy); ctx.arc(cx, cy, r * .4, 0, Math.PI * 2); }
+  } else if (T === 'stepping') {
+    const n = Math.max(1, Math.round(it.w / (it.d * 1.3)));
+    ctx.fillStyle = hexA(col, .8);
+    for (let k = 0; k < n; k++) { const x = -w / 2 + w * (k + .5) / n; ctx.moveTo(x + d * .45, 0); ctx.ellipse(x, 0, d * .45, d * .4, 0, 0, Math.PI * 2); }
+    ctx.fill();
+  } else if (T === 'sleepers') {
+    const n = Math.max(1, Math.round(it.w / 300));
+    ctx.fillStyle = hexA(col, .85);
+    for (let k = 0; k < n; k++) { const x = -w / 2 + w * k / n; ctx.rect(x + w / n * .1, -d / 2, w / n * .7, d); }
+    ctx.fill();
+  } else if (T === 'flowers') {
+    const pal = ['#d76f8f', '#f2c14e', '#ffffff', '#9b7fd1', '#e8743b'];
+    for (let x = -w / 2 + 5; x < w / 2; x += 9) for (let y = -d / 2 + 5; y < d / 2; y += 9) { ctx.fillStyle = pal[Math.abs(Math.round(x * 7 + y * 13)) % pal.length]; ctx.fillRect(x, y, 3, 3); }
+  } else if (T === 'unitbath') {
+    ctx.rect(-w / 2 + 4, -d / 2 + 4, w - 8, d * .45);
+  } else if (T === 'basin2') {
+    for (const cx of [-w * .25, w * .25]) { ctx.moveTo(cx + w * .14, 0); ctx.ellipse(cx, 0, w * .14, d * .28, 0, 0, Math.PI * 2); }
+  } else if (T === 'toiletTl' || T === 'handwash') {
+    ctx.moveTo(w * .4, d * .1); ctx.ellipse(0, d * .1, w * .4, d * .32, 0, 0, Math.PI * 2);
+  } else if (T === 'kitchenL') {
+    ctx.moveTo(-w / 2, -d / 2 + L(650)); ctx.lineTo(-w / 2 + L(650), -d / 2 + L(650)); ctx.lineTo(-w / 2 + L(650), d / 2);
+  } else if (T === 'sofaL') {
+    ctx.moveTo(-w / 2, -d / 2 + L(900)); ctx.lineTo(w / 2 - L(900), -d / 2 + L(900)); ctx.lineTo(w / 2 - L(900), d / 2);
+  } else if (T === 'gate') {
+    ctx.moveTo(-w / 2, 0); ctx.arc(-w / 2, 0, w / 2, 0, Math.PI / 2); ctx.moveTo(w / 2, 0); ctx.arc(w / 2, 0, w / 2, Math.PI, Math.PI / 2, true);
+  } else if (T === 'bedSD' || T === 'bedQ' || T === 'bunk') {
+    ctx.rect(-w / 2 + w * .1, -d / 2 + d * .04, w * .8, d * .12); ctx.moveTo(-w / 2, -d / 2 + d * .3); ctx.lineTo(w / 2, -d / 2 + d * .3);
   } else if (T === 'parking') {
     ctx.setLineDash([4, 4]); ctx.moveTo(0, -d / 2); ctx.lineTo(0, d / 2);
   }
@@ -509,14 +648,19 @@ function drawPlan(ctx, W, H, v, p, fi, ui) {
   }
   // 部屋の床
   for (const r of f.rooms) {
-    const fc = (FLOOR_MATS[r.floor] || FLOOR_MATS.oak).color;
-    ctx.fillStyle = isIn(r) ? hexA(fc, .28) : 'rgba(150,150,140,.12)';
+    const fm = FLOOR_MATS[r.floor] || FLOOR_MATS.oak;
+    ctx.fillStyle = PAPER; ctx.fillRect(X(r.x), Y(r.y), L(r.w), L(r.d));
+    ctx.globalAlpha = isIn(r) ? .5 : .35;
+    ctx.fillStyle = canvasPat(ctx, fm.pat, fm.color, v.s * 1000, X(r.x), Y(r.y));
     ctx.fillRect(X(r.x), Y(r.y), L(r.w), L(r.d));
-    if (r.floor === 'tatami' && L(910) > 14) {   // 畳の目
-      ctx.strokeStyle = hexA('#8f8a4a', .35); ctx.lineWidth = 1; ctx.beginPath();
-      for (let x = r.x + 910; x < r.x + r.w - 10; x += 910) { ctx.moveTo(X(x), Y(r.y)); ctx.lineTo(X(x), Y(r.y + r.d)); }
-      for (let y = r.y + 1820; y < r.y + r.d - 10; y += 1820) { ctx.moveTo(X(r.x), Y(y)); ctx.lineTo(X(r.x + r.w), Y(y)); }
-      ctx.stroke();
+    ctx.globalAlpha = 1;
+    // アクセントクロスの面に色の線
+    if (r.accent && WALLPAPERS[r.accentPaper] && isIn(r)) {
+      const wp = WALLPAPERS[r.accentPaper], k = Math.max(3, L(60)), o = L(75);
+      ctx.fillStyle = wp.color; ctx.strokeStyle = '#555'; ctx.lineWidth = .5;
+      const rr = r.accent === 'N' ? [X(r.x), Y(r.y) + o, L(r.w), k] : r.accent === 'S' ? [X(r.x), Y(r.y + r.d) - o - k, L(r.w), k]
+        : r.accent === 'W' ? [X(r.x) + o, Y(r.y), k, L(r.d)] : [X(r.x + r.w) - o - k, Y(r.y), k, L(r.d)];
+      ctx.fillRect(...rr); ctx.strokeRect(...rr);
     }
     if (!isIn(r)) { ctx.strokeStyle = '#555'; ctx.lineWidth = 1.2; ctx.strokeRect(X(r.x), Y(r.y), L(r.w), L(r.d)); }
   }
@@ -847,6 +991,7 @@ class Editor {
       if (q.w >= 455 && q.d >= 455) {
         const name = $('#roomNameSel').value;
         const r = { id: uid(), name, x: q.x, y: q.y, w: q.w, d: q.d, floor: defaultFloor(name) };
+        if (defaultPaper(name)) r.paper = defaultPaper(name);
         pushUndo(); f.rooms.push(r); this.select({ kind: 'room', id: r.id }); commit();
       } else this.draw();
       return;
@@ -896,6 +1041,16 @@ class Editor {
 
 /* ===== 右側のパネル ===== */
 const optList = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(v.label)}</option>`).join('');
+// 仕上げ材のセレクト（見本の画像つき）
+function matSel(label, key, cat, cur, blank, fallback) {
+  const m = cat[cur] || cat[fallback];
+  const img = m ? `<img class="mthumb" src="${patThumb(m.pat, m.color, 60, 30, 1.2)}" alt="">` : '<span class="mthumb"></span>';
+  return `<label class="f">${label}<span class="msel">${img}<select data-k="${key}">${blank ? `<option value=""${cur ? '' : ' selected'}>${esc(blank)}</option>` : ''}${optList(cat, cur)}</select></span></label>`;
+}
+function swatchBtns(key, list, dataAttr = 'data-sw') {
+  return list.map(([n, c]) => `<button type="button" class="sw" ${dataAttr}="${key}" data-c="${c}" title="${esc(n)}" style="background:${c}"></button>`).join('');
+}
+function swatchRow(key, list, dataAttr = 'data-sw') { return `<div class="sws">${swatchBtns(key, list, dataAttr)}</div>`; }
 const nIn = (k, v, step = 10, extra = '') => `<input type="number" data-k="${k}" value="${v}" step="${step}" ${extra}>`;
 function renderProps(ed) {
   const host = ed.mode === 'site' ? $('#propsSite') : $('#propsPlan');
@@ -906,7 +1061,11 @@ function renderProps(ed) {
     const a = o.w * o.d / 1e6, grp = roomGroups(ed.floor).find(g => g.list.includes(o)), grpA = grp && grp.list.length > 1 ? grp.area : 0;
     h = `<h3>部屋</h3><div class="stack">
       <label class="f">名前<input type="text" data-k="name" list="roomNames" value="${esc(o.name)}"></label>
-      <label class="f">床<select data-k="floor">${optList(FLOOR_MATS, o.floor)}</select></label>
+      ${matSel('床', 'floor', FLOOR_MATS, o.floor)}
+      ${isIn(o) ? `${matSel('壁紙', 'paper', WALLPAPERS, o.paper || '', `標準（${WALLPAPERS[plan().finish.wall].label}）`, plan().finish.wall)}
+      <div class="pg"><label class="f">アクセントクロス<select data-k="accent"><option value="">なし</option>${Object.entries(DIRS).map(([k, l]) => `<option value="${k}"${o.accent === k ? ' selected' : ''}>${l}の壁</option>`).join('')}</select></label>
+      ${o.accent ? `<label class="f">クロス<select data-k="accentPaper">${optList(WALLPAPERS, o.accentPaper || 'navy')}</select></label>` : ''}</div>
+      ${matSel('天井', 'ceil', WALLPAPERS, o.ceil || '', `標準（${WALLPAPERS[plan().finish.ceil].label}）`, plan().finish.ceil)}` : ''}
       <div class="pg"><label class="f">横（東西）mm${nIn('w', o.w, 455, 'min="455"')}</label><label class="f">縦（南北）mm${nIn('d', o.d, 455, 'min="455"')}</label>
       <label class="f">左端 X${nIn('x', o.x, 455)}</label><label class="f">上端 Y${nIn('y', o.y, 455)}</label></div>
       <div class="calc"><b>${(a / TATAMI).toFixed(1)}帖</b>　${a.toFixed(2)}㎡${grpA ? `<br>つながった「${esc(o.name)}」全体：<b>${(grpA / TATAMI).toFixed(1)}帖</b>　${grpA.toFixed(2)}㎡` : ''}</div>
@@ -925,7 +1084,9 @@ function renderProps(ed) {
     h = `<h3>${esc(c.label)}</h3><div class="stack">
       <div class="pg"><label class="f">幅 mm${nIn('w', o.w, 10, 'min="20"')}</label><label class="f">奥行 mm${nIn('d', o.d, 10, 'min="20"')}</label>
       <label class="f">高さ mm${nIn('h', o.h, 10, 'min="0"')}</label><label class="f">向き（度）${nIn('rot', o.rot, 15)}</label></div>
+      ${k === 'ext' && c.mat ? matSel('仕上げ', 'mat', PAVINGS, o.mat || c.mat) : ''}
       <label class="f">色<input type="color" data-k="color" value="${o.color || c.color}"></label>
+      ${swatchRow('color', SWATCH.wood)}
       ${k === 'item' ? '<p class="hint">太い線の側が背中（壁につける側）です。</p>' : ''}
       <div class="acts"><button class="btn sm" data-act="rot">90°回す</button><button class="btn sm" data-act="dup">複製</button><button class="btn sm danger" data-act="del">削除</button></div></div>`;
   } else if (k === 'wall') {
@@ -944,7 +1105,14 @@ function renderProps(ed) {
     if (k === 'opening' && key === 'type') { const c = OPENINGS[el.value]; Object.assign(o2, { w: c.w, h: c.h, sill: c.sill }); attachOpening(ed.floor, o2, o2.x, o2.y); }
     if (k === 'opening' && key === 'w') attachOpening(ed.floor, o2, o2.x, o2.y);
     if (k === 'ext' && EXT[o2.type]?.round && key === 'w') o2.d = o2.w;
+    if (key === 'mat') o2.color = PAVINGS[o2.mat].color;
+    if (key === 'accent' && o2.accent && !o2.accentPaper) o2.accentPaper = 'navy';
+    if (key === 'name' && !o2.paper && defaultPaper(o2.name)) o2.paper = defaultPaper(o2.name);
     commit();
+  }));
+  host.querySelectorAll('[data-sw]').forEach(b => b.addEventListener('click', () => {
+    const o2 = ed.obj(); if (!o2) return;
+    pushUndo(); o2[b.dataset.sw] = b.dataset.c; commit();
   }));
   host.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => {
     const a = b.dataset.act;
@@ -1053,6 +1221,20 @@ function renderSettings() {
     f.items.filter(it => it.type === 'stairs').forEach(it => it.h = f.h);
     commit(); renderSettings();
   });
+  // 仕上げ材の見本
+  const pick = (host, cat, cur, onPick, meters = 1.2) => {
+    host.innerHTML = Object.entries(cat).map(([k, m]) => `<button type="button" class="mt${k === cur ? ' on' : ''}" data-mk="${k}"><img src="${patThumb(m.pat, m.color, 96, 64, meters)}" alt=""><span>${esc(m.label)}</span></button>`).join('');
+    host.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => { pushUndo(); onPick(b.dataset.mk); commit(); renderSettings(); });
+  };
+  pick($('#pkExt'), EXT_WALLS, p.finish.ext, k => { p.finish.ext = k; p.colors.extWall = EXT_WALLS[k].color; }, 1.6);
+  pick($('#pkRoof'), ROOF_MATS, p.finish.roof, k => { p.finish.roof = k; p.colors.roof = ROOF_MATS[k].color; }, 1.4);
+  pick($('#pkWall'), WALLPAPERS, p.finish.wall, k => { p.finish.wall = k; }, .9);
+  pick($('#pkCeil'), WALLPAPERS, p.finish.ceil, k => { p.finish.ceil = k; }, .9);
+  $('#floorExt').innerHTML = p.floors.map((f, i) => `<div class="row fext"><b>${i + 1}階</b>
+    <select data-fe="${i}"><option value="">全体と同じ（${esc(EXT_WALLS[p.finish.ext].label)}）</option>${optList(EXT_WALLS, f.ext ? f.ext.key : '')}</select>
+    ${f.ext ? `<img class="mthumb" src="${patThumb(EXT_WALLS[f.ext.key].pat, f.ext.color, 60, 30, 1.6)}" alt=""><input type="color" data-fec="${i}" value="${f.ext.color}">` : ''}</div>`).join('');
+  $$('[data-fe]').forEach(el => el.onchange = () => { pushUndo(); const f = plan().floors[+el.dataset.fe]; f.ext = el.value ? { key: el.value, color: EXT_WALLS[el.value].color } : null; commit(); renderSettings(); });
+  $$('[data-fec]').forEach(el => el.onchange = () => { pushUndo(); plan().floors[+el.dataset.fec].ext.color = el.value; commit(); renderSettings(); });
   const st = p.site, sa = st.w * st.d / 1e6;
   $('#siteCalc').textContent = `敷地面積 ${sa.toFixed(2)}㎡（${(sa / TSUBO).toFixed(2)}坪）`;
 }
@@ -1072,9 +1254,7 @@ function importJSON(file) {
       const p = JSON.parse(fr.result);
       if (!p || !Array.isArray(p.floors) || !p.site) throw new Error('形式が違います');
       p.id = uid(); p.name = (p.name || '読み込んだプラン');
-      const base = newPlan(false);
-      p.colors = Object.assign(base.colors, p.colors); p.roof = Object.assign(base.roof, p.roof); p.ext = p.ext || [];
-      p.floors.forEach(f => { f.rooms = f.rooms || []; f.walls = f.walls || []; f.openings = f.openings || []; f.items = f.items || []; });
+      ensurePlan(p);
       store.plans.push(p); store.cur = p.id; undoS = []; redoS = [];
       edPlan.fitted = edSite.fitted = false; afterSwap(); edPlan.fit(); edSite.fit(); toast('読み込みました');
     } catch (e) { toast('読み込めませんでした：' + e.message); }
@@ -1127,8 +1307,10 @@ function startApp() {
   $('#roomNameSel').innerHTML = ROOM_NAMES.map(n => `<option>${n}</option>`).join('');
   $('#roomNames').innerHTML = ROOM_NAMES.map(n => `<option value="${n}">`).join('');
   $('#opTools').innerHTML = Object.entries(OPENINGS).map(([k, c]) => `<button class="tool" data-tool="op:${k}">${esc(c.label)}</button>`).join('');
-  $('#fuTools').innerHTML = Object.entries(FURN).map(([k, c]) => `<button class="tool" data-tool="fu:${k}">${esc(c.label)}</button>`).join('');
-  $('#exTools').innerHTML = Object.entries(EXT).map(([k, c]) => `<button class="tool" data-tool="ex:${k}">${esc(c.label)}</button>`).join('');
+  const grouped = (cats, cat, pre) => cats.map((name, i) => `<details${i === 0 ? ' open' : ''}><summary>${esc(name)}<span>${Object.values(cat).filter(c => c.cat === i).length}</span></summary><div class="tools-grid">${
+    Object.entries(cat).filter(([, c]) => c.cat === i).map(([k, c]) => `<button class="tool" data-tool="${pre}:${k}">${esc(c.label)}</button>`).join('')}</div></details>`).join('');
+  $('#fuTools').innerHTML = grouped(FURN_CATS, FURN, 'fu');
+  $('#exTools').innerHTML = grouped(EXT_CATS, EXT, 'ex');
   for (const [ed, sec] of [[edPlan, '#tab-plan'], [edSite, '#tab-site']]) {
     $$(sec + ' [data-tool]').forEach(b => b.onclick = () => ed.setTool(ed.tool === b.dataset.tool ? 'select' : b.dataset.tool));
     $(sec + ' .gridSel').onchange = e => { ed.grid = +e.target.value; ed.draw(); };
@@ -1175,8 +1357,16 @@ function startApp() {
     commit(); renderSettings();
     if (path.startsWith('site')) { edSite.fitted = false; }
   }));
-  $('#schemeBtns').innerHTML = SCHEMES.map((s, i) => `<button class="btn sm" data-sc="${i}"><span class="swatch"><i style="background:${s.extWall}"></i><i style="background:${s.roof}"></i></span> ${esc(s.name)}</button>`).join('');
-  $$('[data-sc]').forEach(b => b.onclick = () => { const s = SCHEMES[+b.dataset.sc]; pushUndo(); Object.assign(plan().colors, { extWall: s.extWall, roof: s.roof, sash: s.sash }); commit(); renderSettings(); });
+  $('#schemeBtns').innerHTML = SCHEMES.map((s, i) => `<button class="scheme" data-sc="${i}"><span class="sch"><img src="${patThumb(ROOF_MATS[s.roof].pat, s.roofC, 64, 14, .9)}" alt=""><img src="${patThumb(EXT_WALLS[s.ext].pat, s.extWall, 64, 22, 1.2)}" alt="">${s.lower ? `<img src="${patThumb(EXT_WALLS[s.lower.key].pat, s.lower.color, 64, 22, 1.2)}" alt="">` : ''}</span>${esc(s.name)}</button>`).join('');
+  $$('[data-sc]').forEach(b => b.onclick = () => {
+    const s = SCHEMES[+b.dataset.sc], p = plan(); pushUndo();
+    Object.assign(p.finish, { ext: s.ext, roof: s.roof }); Object.assign(p.colors, { extWall: s.extWall, roof: s.roofC, sash: s.sash });
+    p.floors.forEach(f => f.ext = null);
+    if (s.lower && p.floors.length > 1) p.floors[0].ext = { ...s.lower };
+    commit(); renderSettings(); toast(`「${s.name}」にしました`);
+  });
+  $$('[data-swg]').forEach(el => { const k = el.dataset.swg.split('.')[1]; el.innerHTML = swatchBtns(el.dataset.swg, SWATCH[k === 'sash' ? 'sash' : k === 'entrance' ? 'entrance' : 'door'], 'data-swp'); });
+  $$('[data-swp]').forEach(b => b.onclick = () => { pushUndo(); setPath(plan(), b.dataset.swp, b.dataset.c); commit(); renderSettings(); });
   // 3D の操作
   $$('[data-view]').forEach(b => b.onclick = () => getView().preset(b.dataset.view));
   $('#upToSel').onchange = e => { const v = getView(); v.opt.upTo = +e.target.value; v.applyVis(); };

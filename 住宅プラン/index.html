@@ -54,7 +54,7 @@
     </div>
     <div class="tg">
       <div class="tl">家具・設備 <span>置きたい場所をクリック</span></div>
-      <div class="tools-grid" id="fuTools"></div>
+      <div id="fuTools"></div>
     </div>
     <div class="tg">
       <div class="tl">表示</div>
@@ -77,7 +77,7 @@
     </div>
     <div class="tg">
       <div class="tl">外構 <span>置きたい場所をクリック</span></div>
-      <div class="tools-grid" id="exTools"></div>
+      <div id="exTools"></div>
     </div>
     <div class="tg">
       <div class="tl">表示</div>
@@ -174,18 +174,41 @@
       <p class="hint">屋根は一番上の階の部屋に自動でかかります。上の階がない1階部分には下屋（片流れ・平屋根）が自動でかかります。</p>
     </div>
     <div class="card">
-      <h2>色</h2>
+      <h2>外観のおすすめ組み合わせ <span class="sub">押すと外壁・屋根・サッシがまとめて変わります</span></h2>
       <div class="row" id="schemeBtns"></div>
-      <div class="grid" style="margin-top:12px">
-        <label class="f">外壁<input type="color" data-s="colors.extWall"></label>
-        <label class="f">屋根<input type="color" data-s="colors.roof"></label>
-        <label class="f">サッシ<input type="color" data-s="colors.sash"></label>
-        <label class="f">室内の壁<input type="color" data-s="colors.intWall"></label>
-        <label class="f">天井<input type="color" data-s="colors.ceiling"></label>
-        <label class="f">室内ドア<input type="color" data-s="colors.door"></label>
-        <label class="f">敷地（土）<input type="color" data-s="colors.ground"></label>
+    </div>
+    <div class="card">
+      <h2>外壁</h2>
+      <div class="mpick" id="pkExt"></div>
+      <div class="grid" style="margin-top:10px">
+        <label class="f">外壁の色<input type="color" data-s="colors.extWall"></label>
       </div>
-      <p class="hint">床の色は部屋ごとに「間取り」で部屋を選んで変えます。家具・外構の色も選んだものごとに変えられます。</p>
+      <h3>階ごとに変える（ツートン）</h3>
+      <div id="floorExt"></div>
+    </div>
+    <div class="card">
+      <h2>屋根</h2>
+      <div class="mpick" id="pkRoof"></div>
+      <div class="grid" style="margin-top:10px">
+        <label class="f">屋根の色<input type="color" data-s="colors.roof"></label>
+        <label class="f">軒天の色<input type="color" data-s="colors.soffit"></label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>サッシ・ドア</h2>
+      <div class="grid">
+        <div class="f"><span>サッシ（窓枠）</span><input type="color" data-s="colors.sash"><div class="sws" data-swg="colors.sash"></div></div>
+        <div class="f"><span>玄関ドア</span><input type="color" data-s="colors.entrance"><div class="sws" data-swg="colors.entrance"></div></div>
+        <div class="f"><span>室内ドア・引戸</span><input type="color" data-s="colors.door"><div class="sws" data-swg="colors.door"></div></div>
+        <div class="f"><span>敷地（土）</span><input type="color" data-s="colors.ground"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>内装（家全体の標準） <span class="sub">部屋ごとの床・壁紙・アクセントクロスは「間取り」で部屋を選んで変えます</span></h2>
+      <h3>壁紙（クロス）</h3>
+      <div class="mpick" id="pkWall"></div>
+      <h3>天井</h3>
+      <div class="mpick" id="pkCeil"></div>
     </div>
   </div>
 </section>
@@ -196,6 +219,7 @@
 <div id="toast" role="status"></div>
 
 <script src="lib/three.min.js"></script>
+<script src="materials.js"></script>
 <script src="app.js"></script>
 <script src="view3d.js"></script>
 <script>startApp();</script>
