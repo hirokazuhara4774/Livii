@@ -101,12 +101,16 @@
   </div>
 
   <div class="card">
-    <h2>今の貯蓄・その他の収入</h2>
+    <h2>貯蓄・その他の収入</h2>
     <div class="grid">
       <label class="f">預貯金・投資など<div class="u"><input type="number" data-k="save.current"><span>万円</span></div></label>
       <label class="f">運用利回り<div class="u"><input type="number" step="0.1" data-k="save.rate"><span>%/年</span></div></label>
       <label class="f">その他の収入（家賃収入など）<div class="u"><input type="number" data-k="otherIncome"><span>万円/年</span></div></label>
+      <label class="f">毎月の貯蓄額（積立・NISA・財形など）<div class="u"><input type="number" step="1000" data-k="save.monthly" placeholder="未入力"><span>円/月</span></div></label>
+      <label class="f">ボーナスからの貯蓄<div class="u"><input type="number" step="10000" data-k="save.bonus" placeholder="未入力"><span>円/年</span></div></label>
     </div>
+    <div class="calc" id="saveCalc"></div>
+    <p class="hint">毎月の貯蓄額は、今実際に貯めている額です（積立保険の保険料は④に入れるので含めません）。入力した収入・支出から計算した貯蓄と比べて、差が大きいときは入れていない支出がないか確認します。</p>
   </div>
 </section>
 
@@ -161,6 +165,29 @@
         <label class="f">購入後の固定資産税・修繕など<div class="u"><input type="number" data-k="house.upkeepBuy"><span>万円/年</span></div></label>
       </div>
       <div class="calc" id="loanCalc"></div>
+    </div>
+    <div id="loanJoint">
+      <h3>住宅ローンの名義・団信・住宅ローン控除</h3>
+      <div class="grid">
+        <label class="f">借入の形<select data-k="house.borrower"><option>本人単独</option><option>連帯債務</option><option>ペアローン</option><option>収入合算（連帯保証）</option></select></label>
+        <label class="f" data-joint>本人の負担割合（返済・控除）<div class="u"><input type="number" data-k="house.share"><span>%</span></div></label>
+        <label class="f" data-rentai>団信<select data-k="house.dansinType"><option value="主債務者（本人）のみ">主債務者（本人）のみ</option><option value="夫婦連生団信">夫婦連生団信</option></select></label>
+        <label class="f" data-buyonly>頭金のうち本人が出す額<div class="u"><input type="number" data-k="house.downSelf" placeholder="全額"><span>万円</span></div></label>
+        <label class="f" data-show="own">ローン金利<div class="u"><input type="number" step="0.05" data-k="house.loanRate"><span>%</span></div></label>
+        <label class="f" data-show="own">入居した年<div class="u"><input type="number" data-k="house.moveYear"><span>年</span></div></label>
+      </div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" data-k="house.deduct"> 住宅ローン控除（住宅ローン減税）を受ける</label>
+      <div class="grid" id="dedFields" style="margin-top:8px">
+        <label class="f">借入限度額（1人あたり）<div class="u"><input type="number" data-k="house.deductLimit"><span>万円</span></div></label>
+        <label class="f">控除率<div class="u"><input type="number" step="0.1" data-k="house.deductRate"><span>%</span></div></label>
+        <label class="f">控除期間<div class="u"><input type="number" data-k="house.deductYears"><span>年</span></div></label>
+        <label class="f">本人が控除できる税額の上限<div class="u"><input type="number" step="0.1" data-k="house.capSelf" placeholder="自動"><span>万円/年</span></div></label>
+        <label class="f">配偶者が控除できる税額の上限<div class="u"><input type="number" step="0.1" data-k="house.capSpouse" placeholder="自動"><span>万円/年</span></div></label>
+      </div>
+      <div class="calc" id="jointCalc"></div>
+      <p class="hint">連帯債務：夫婦で1本のローン。2人とも住宅ローン控除を受けられ、団信は主債務者だけか夫婦連生団信。ペアローン：夫婦それぞれのローン（契約が2本で諸費用は多め）。団信もそれぞれ。収入合算（連帯保証）：控除と団信は本人だけ。<br>
+      持分は、頭金とローン返済で資金を出した割合に合わせて登記します。ずれると贈与税がかかることがあります。<br>
+      借入限度額・控除率・期間は、入居年と住宅の性能（長期優良・ZEH・省エネ基準など）で変わります（例：2024〜2025年入居の省エネ基準適合の新築は 3,000万円〈子育て・若者夫婦世帯は4,000万円〉・0.7%・13年）。控除できる税額の上限が空欄なら、その年の手取り年収から所得税＋住民税（上限9.75万円）を概算します。</p>
     </div>
   </div>
 
