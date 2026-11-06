@@ -82,8 +82,9 @@
         <button class="tool" data-tool="ul:cal">2点で縮尺合わせ</button>
         <button class="tool" data-tool="ul:move">下図を動かす</button>
         <button class="tool" data-tool="bd:draw">敷地境界をなぞる</button>
+        <button class="tool" data-tool="ul:ocr">範囲を選んでOCR</button>
       </div>
-      <p class="hint">読み込むと、文字の入った PDF は座標・地積・縮尺を自動で読み取ります。</p>
+      <p class="hint">文字の入った PDF は座標・地積・縮尺を自動で読み取ります。スキャンは OCR（文字認識）で読みます。座標の表は「範囲を選んでOCR」で表を囲むと正確です。</p>
     </div>
     <div class="tg">
       <div class="tl">外構 <span>置きたい場所をクリック</span></div>
@@ -244,6 +245,7 @@
 <datalist id="roomNames"></datalist>
 <div id="printArea"></div>
 <div id="toast" role="status"></div>
+<div id="busy" hidden><div class="bx"><div class="spin"></div><div id="busyMsg">読み取り中…</div></div></div>
 
 <script src="lib/three.min.js"></script>
 <script src="materials.js"></script>

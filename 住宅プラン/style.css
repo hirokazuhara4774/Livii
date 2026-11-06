@@ -154,6 +154,13 @@ section.tab.doc.on{display:block;overflow-y:auto}
 .cu img{width:72px;height:48px;object-fit:cover;border-radius:5px;border:1px solid var(--line)}
 .cu div{flex:1}
 .stack input[type=range]{width:100%}
+#busy{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;display:flex;align-items:center;justify-content:center}
+#busy[hidden]{display:none}
+#busy .bx{background:var(--surface);border-radius:12px;padding:18px 24px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+#busy .spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ocrtxt{width:100%;min-height:140px;font-family:ui-monospace,Menlo,monospace;font-size:11px;border:1px solid var(--line);border-radius:7px;padding:6px;background:var(--surface-2)}
+.warn{color:var(--critical);background:var(--critical-soft);border-radius:7px;padding:6px 8px;font-size:12px;margin:6px 0}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
 #toast.on{opacity:.95}
 #printArea{display:none}

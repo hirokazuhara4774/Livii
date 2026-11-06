@@ -31,6 +31,13 @@ function parseSurvey(lines) {
     if (res.scale == null) { const c = s.match(/(?:縮尺|S\s*=|Ｓ\s*=)?\s*1\s*[/:：]\s*(50|100|150|200|250|300|400|500|600|1000)(?![0-9])/); if (c) res.scale = +c[1]; }
   }
   if (res.points.length < 3) res.points = [];
+  // OCR でマイナスが抜けたときの直し：同じ列の多くと符号が違い、大きさが近い値は符号をそろえる
+  for (const k of ['X', 'Y']) {
+    const vals = res.points.map(q => q[k]); if (vals.length < 3) break;
+    const neg = vals.filter(v => v < 0).length, sign = neg > vals.length / 2 ? -1 : 1;
+    const med = vals.map(Math.abs).sort((a, b) => a - b)[Math.floor(vals.length / 2)];
+    res.points.forEach(q => { if (Math.sign(q[k]) !== sign && med > 50 && Math.abs(Math.abs(q[k]) - med) < med * .1) { q[k] = -q[k]; q.fixed = true; } });
+  }
   return res;
 }
 function polyArea(poly) { let s = 0; for (let i = 0; i < poly.length; i++) { const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % poly.length]; s += x1 * y2 - x2 * y1; } return Math.abs(s) / 2; }
@@ -105,11 +112,13 @@ async function readSurveyFile(file, pageNo = 1) {
     cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
     cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
   }
+  surveyCanvas = cv;
   // 保存用に縮める（ブラウザの保存容量のため）
   const k2 = Math.min(1, 1800 / Math.max(cv.width, cv.height));
   const out = document.createElement('canvas'); out.width = Math.round(cv.width * k2); out.height = Math.round(cv.height * k2);
   out.getContext('2d').drawImage(cv, 0, 0, out.width, out.height);
-  return { img: out.toDataURL('image/jpeg', .72), pw: out.width, ph: out.height, paperMmPerPx: paperMmPerPx ? paperMmPerPx / k2 : null, parsed, pages, name: file.name, isPdf };
+  const img = out.toDataURL('image/jpeg', .72); cv.__ulImg = img;
+  return { img, pw: out.width, ph: out.height, paperMmPerPx: paperMmPerPx ? paperMmPerPx / k2 : null, parsed, pages, name: file.name, isPdf };
 }
 
 // 下図を描く
@@ -129,4 +138,90 @@ function drawUnderlay(ctx, v, p) {
   const k = ul.mmpp * v.s;
   ctx.drawImage(im, 0, 0, ul.pw * k, ul.ph * k);
   ctx.restore();
+}
+
+/* ===== OCR（スキャンした図面の文字を読む）=====
+   Tesseract（lib/tesseract-core-lstm.wasm.js、Apache-2.0）と日本語データ（lib/ocr-jpn-data.js）を、使うときだけ読み込む。
+   ネットにつながなくても動く。ブラウザの中だけで処理し、図面はどこにも送らない。 */
+let ocrReady = null, surveyCanvas = null;   // surveyCanvas：最後に読み込んだ図面の元の大きさの画像（このセッションだけ）
+function loadOcr() {
+  if (ocrReady) return ocrReady;
+  const add = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src + ' を読み込めません')); document.head.appendChild(s); });
+  ocrReady = (async () => {
+    await add('lib/tesseract-core-lstm.wasm.js');
+    await add('lib/ocr-jpn-data.js');
+    const mod = await TesseractCore({ print: () => { }, printErr: () => { } });
+    // 日本語データ：base64 → gzip を戻す
+    const bin = Uint8Array.from(atob(window.OCR_JPN_GZ_B64), c => c.charCodeAt(0));
+    const data = new Uint8Array(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    mod.FS.writeFile('/jpn.traineddata', data);
+    const api = new mod.TessBaseAPI();
+    if (api.Init('/', 'jpn', 1) === -1) throw new Error('OCR の準備に失敗しました');
+    delete window.OCR_JPN_GZ_B64;
+    return { mod, api };
+  })();
+  ocrReady.catch(() => { ocrReady = null; });
+  return ocrReady;
+}
+// 白黒をはっきりさせ、文字が小さければ拡大する
+function ocrPrep(src, minScale = 1) {
+  const k = Math.max(minScale, Math.min(3, 2600 / Math.max(src.width, src.height)));
+  const cv = document.createElement('canvas'); cv.width = Math.round(src.width * k); cv.height = Math.round(src.height * k);
+  const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(src, 0, 0, cv.width, cv.height);
+  const im = c.getImageData(0, 0, cv.width, cv.height), d = im.data;
+  for (let i = 0; i < d.length; i += 4) {
+    // 赤・青の文字も読めるよう、いちばん暗い色の成分で白黒にする
+    const v = Math.min(d[i], d[i + 1], d[i + 2]), g = v < 150 ? Math.max(0, v - 40) : 255;
+    d[i] = d[i + 1] = d[i + 2] = g;
+  }
+  c.putImageData(im, 0, 0);
+  return cv;
+}
+async function ocrCanvas(src, psm = 3) {
+  const { mod, api } = await loadOcr();
+  const cv = ocrPrep(src);
+  const png = await new Promise(res => cv.toBlob(res, 'image/png'));
+  mod.FS.writeFile('/input', new Uint8Array(await png.arrayBuffer()));
+  api.SetVariable('tessedit_pageseg_mode', String(psm));
+  api.SetVariable('preserve_interword_spaces', '1');
+  if (api.SetImageFile(1, 0) === 1) throw new Error('画像を読めません');
+  const text = api.GetUTF8Text();
+  api.Clear();
+  return text;
+}
+// OCR の読み間違いを直す（数字まわり）
+function ocrClean(s) {
+  return s.normalize('NFKC')
+    .replace(/[一ー―‐−–—]\s*(?=\d)/g, '-')            // 「一」などのマイナス
+    .replace(/(\d)\s*[.,。・]\s*(\d{3})(?!\d)/g, '$1.$2')   // 小数点のまわりの空白
+    .replace(/(?<=\d)[Oo〇](?=\d)/g, '0').replace(/(?<=\d)[lI|](?=\d)/g, '1')
+    .replace(/[mｍ]\s*[2²]/g, '㎡');
+}
+function parseOcrText(text) {
+  return parseSurvey(ocrClean(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean));
+}
+// 下図の上の範囲（mm の四角）を切り出す。元の大きさの画像があればそれを使う
+function cropUnderlay(ul, r) {
+  const im = surveyCanvas && surveyCanvas.__ulImg === ul.img ? surveyCanvas : ulImage(ul);
+  const k = (im.width || im.naturalWidth) / ul.pw;
+  // 四角の4つの角を、下図の画素の位置に直す（回転も戻す）
+  const cs = [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.d], [r.x, r.y + r.d]].map(([x, y]) => {
+    const [lx, ly] = rotPt(x - ul.x, y - ul.y, -(ul.rot || 0)); return [lx / ul.mmpp * k, ly / ul.mmpp * k];
+  });
+  const x0 = Math.max(0, Math.min(...cs.map(c => c[0]))), y0 = Math.max(0, Math.min(...cs.map(c => c[1])));
+  const x1 = Math.min(im.width || im.naturalWidth, Math.max(...cs.map(c => c[0]))), y1 = Math.min(im.height || im.naturalHeight, Math.max(...cs.map(c => c[1])));
+  if (x1 - x0 < 10 || y1 - y0 < 10) return null;
+  const cv = document.createElement('canvas'); cv.width = Math.round(x1 - x0); cv.height = Math.round(y1 - y0);
+  const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+  // 下図が 90° 単位で回っていれば、文字が横向きになるよう戻して切り出す
+  const rot = ((Math.round((ul.rot || 0) / 90) * 90) % 360 + 360) % 360;
+  if (rot) {
+    const out = document.createElement('canvas'); out.width = rot % 180 ? cv.height : cv.width; out.height = rot % 180 ? cv.width : cv.height;
+    const o = out.getContext('2d'); o.fillStyle = '#fff'; o.fillRect(0, 0, out.width, out.height);
+    o.translate(out.width / 2, out.height / 2); o.rotate(rot * Math.PI / 180);
+    o.drawImage(im, x0, y0, x1 - x0, y1 - y0, -cv.width / 2, -cv.height / 2, cv.width, cv.height);
+    return out;
+  }
+  c.drawImage(im, x0, y0, x1 - x0, y1 - y0, 0, 0, cv.width, cv.height);
+  return cv;
 }

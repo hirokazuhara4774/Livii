@@ -817,7 +817,7 @@ function drawSel(ctx, v, ui) {
     if (q.kind === 'room') {
       ctx.fillStyle = hexA(ACC, .08); ctx.fillRect(X(q.x), Y(q.y), L(q.w), L(q.d)); ctx.strokeRect(X(q.x), Y(q.y), L(q.w), L(q.d));
       ctx.setLineDash([]);
-      labelAt(ctx, X(q.x + q.w / 2), Y(q.y + q.d / 2), [`${fmt(q.w)} × ${fmt(q.d)}`, `${(q.w * q.d / 1e6 / TATAMI).toFixed(1)}帖`], 13, ACC);
+      if (!q.ocr) labelAt(ctx, X(q.x + q.w / 2), Y(q.y + q.d / 2), [`${fmt(q.w)} × ${fmt(q.d)}`, `${(q.w * q.d / 1e6 / TATAMI).toFixed(1)}帖`], 13, ACC);
     } else if (q.kind === 'wall') {
       ctx.lineWidth = Math.max(3, L(105)); ctx.setLineDash([]); ctx.strokeStyle = hexA(ACC, .7);
       ctx.beginPath(); ctx.moveTo(X(q.x1), Y(q.y1)); ctx.lineTo(X(q.x2), Y(q.y2)); ctx.stroke();
@@ -954,6 +954,7 @@ class Editor {
       : t === 'ul:cal' ? '下図の上で、長さがわかっている2点（境界点など）をクリック → 実際の長さを入れます'
       : t === 'ul:move' ? '下図をドラッグして、敷地や建物に重ねます'
       : t === 'bd:draw' ? '敷地の角を順にクリック。最初の点をクリック（またはダブルクリック）で閉じます'
+      : t === 'ul:ocr' ? '読み取りたい所（座標の表・地積など）をドラッグで囲みます'
       : t.startsWith('op:') ? '取り付ける壁の上をクリック'
       : (t.startsWith('fu:') || t.startsWith('ex:')) ? '置きたい場所をクリック'
       : 'クリックで選択・ドラッグで移動・角の□で大きさを変更。何もない所のドラッグで画面移動、ホイールで拡大縮小');
@@ -969,6 +970,10 @@ class Editor {
     if (this.ptrs.size > 2) return;
     const w = this.pt(e), t = this.tool, f = this.floor, p = plan();
     if (e.button === 1 || e.button === 2 || this.space) { this.drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, ox: this.v.ox, oy: this.v.oy }; return; }
+    if (t === 'ul:ocr') {
+      if (!p.underlay) { toast('先に PDF・画像を読み込んでください'); return; }
+      this.drag = { kind: 'ocr', a: { x: w.x, y: w.y }, b: { x: w.x, y: w.y } }; return;
+    }
     if (t === 'room' || t === 'wall') {
       const a = { x: this.snap(w.x), y: this.snap(w.y) };
       this.drag = { kind: t, a, b: a }; return;
@@ -1054,6 +1059,11 @@ class Editor {
     }
     const w = this.pt(e);
     if (d.kind === 'pan') { this.v.ox = d.ox + e.clientX - d.sx; this.v.oy = d.oy + e.clientY - d.sy; this.draw(); return; }
+    if (d.kind === 'ocr') {
+      d.b = { x: w.x, y: w.y };
+      this.preview = { kind: 'room', ocr: 1, x: Math.min(d.a.x, d.b.x), y: Math.min(d.a.y, d.b.y), w: Math.abs(d.b.x - d.a.x), d: Math.abs(d.b.y - d.a.y) };
+      this.draw(); return;
+    }
     if (d.kind === 'room') {
       d.b = { x: this.snap(w.x), y: this.snap(w.y) };
       this.preview = { kind: 'room', x: Math.min(d.a.x, d.b.x), y: Math.min(d.a.y, d.b.y), w: Math.abs(d.b.x - d.a.x), d: Math.abs(d.b.y - d.a.y) };
@@ -1115,6 +1125,11 @@ class Editor {
     if (d.kind === 'pinch') { if (this.ptrs.size < 2) this.drag = null; return; }
     this.drag = null;
     const f = this.floor;
+    if (d.kind === 'ocr') {
+      const q = this.preview; this.preview = null; this.draw();
+      if (q && q.w * this.v.s > 20 && q.d * this.v.s > 12) runOcr(q);
+      return;
+    }
     if (d.kind === 'room' && this.preview) {
       const q = this.preview; this.preview = null;
       if (q.w >= 455 && q.d >= 455) {
@@ -1296,6 +1311,15 @@ function renderProps(ed) {
   host.querySelectorAll('[data-sv]').forEach(b => b.addEventListener('click', () => {
     const a = b.dataset.sv, p = plan();
     if (a === 'close') { surveyRes = null; renderProps(ed); }
+    if (a === 'ocrAll') runOcr();
+    if (a === 'ocrArea') { ed.setTool('ul:ocr'); }
+    if (a === 'typeIn' && surveyRes) { surveyRes.ocrText = ''; renderProps(ed); }
+    if (a === 'reparse' && surveyRes) {
+      surveyRes.ocrText = $('#ocrText').value;
+      const pr = parseOcrText(surveyRes.ocrText);
+      surveyRes.parsed = { points: pr.points, area: pr.area ?? surveyRes.parsed.area, scale: pr.scale ?? surveyRes.parsed.scale, lines: pr.lines };
+      renderProps(ed); toast(pr.points.length >= 3 ? `座標 ${pr.points.length} 点` : '座標は見つかりませんでした（「点名 X Y」を1行ずつ）');
+    }
     if ((a === 'rotL' || a === 'rotR') && p.underlay) {
       // 下図の中心を軸に回す
       const ul = p.underlay, w = ul.pw * ul.mmpp, h = ul.ph * ul.mmpp, r0 = (ul.rot || 0) * Math.PI / 180;
@@ -1364,6 +1388,38 @@ function productTable(p) {
     <p class="hint">外構・家具を選んで「商品（メーカー）」を選ぶとここに出ます。色・品番は各社の最新カタログで確認してください。</p>`;
 }
 let surveyRes = null;   // 最後に読み取った結果
+function busy(msg) { $('#busy').hidden = !msg; if (msg) $('#busyMsg').textContent = msg; }
+// OCR：rect（mm の四角）を省くとページ全体
+async function runOcr(rect) {
+  const p = plan(), ul = p.underlay;
+  if (!ul) return toast('先に PDF・画像を読み込んでください');
+  if (!rect) {
+    const w = ul.pw * ul.mmpp, h = ul.ph * ul.mmpp;
+    const cs = [[0, 0], [w, 0], [w, h], [0, h]].map(([x, y]) => { const [rx, ry] = rotPt(x, y, ul.rot || 0); return [ul.x + rx, ul.y + ry]; });
+    const x0 = Math.min(...cs.map(c => c[0])), y0 = Math.min(...cs.map(c => c[1]));
+    rect = { x: x0, y: y0, w: Math.max(...cs.map(c => c[0])) - x0, d: Math.max(...cs.map(c => c[1])) - y0, all: 1 };
+  }
+  const crop = cropUnderlay(ul, rect);
+  if (!crop) return toast('下図の上を囲んでください');
+  busy(ocrReady ? '文字を読み取っています…' : 'OCR を準備しています（初回だけ数秒）…');
+  await new Promise(r => setTimeout(r, 60));
+  try {
+    await loadOcr();
+    busy(rect.all ? 'ページ全体を読み取っています（10〜30秒）…' : '囲んだ範囲を読み取っています…');
+    await new Promise(r => setTimeout(r, 60));
+    let text = (await ocrCanvas(crop, rect.all ? 11 : 6)).trim();
+    // ページ全体で座標の表が見つからなければ、表の行がまとまる読み方でもう一度
+    if (rect.all && parseOcrText(text).points.length < 3) { busy('表の形でもう一度読み取っています…'); await new Promise(r => setTimeout(r, 60)); text += '\n' + (await ocrCanvas(crop, 6)).trim(); }
+    if (!surveyRes) surveyRes = { name: ul.name, pages: 1, isPdf: false, parsed: { points: [], area: null, scale: null, lines: 0 } };
+    surveyRes.ocrText = rect.all ? text : (surveyRes.ocrText && !surveyRes.ocrAll ? surveyRes.ocrText + '\n' : '') + text;
+    surveyRes.ocrAll = !!rect.all;
+    const pr = parseOcrText(surveyRes.ocrText), old = surveyRes.parsed;
+    surveyRes.parsed = { points: pr.points.length >= 3 ? pr.points : old.points, area: pr.area ?? old.area, scale: pr.scale ?? old.scale, lines: pr.lines };
+    edSite.select(null); edSite.setTool('select');
+    toast(pr.points.length >= 3 ? `座標を ${pr.points.length} 点読み取りました。右で確かめてください` : pr.area ? `地積 ${pr.area}㎡ を読み取りました` : '読み取った文字を右に出しました。座標の表があれば、その範囲を囲んでもう一度読むと正確です');
+  } catch (err) { console.error(err); toast('OCR できませんでした：' + err.message); }
+  busy(null);
+}
 function surveyPanel(p) {
   let h = '';
   const r = surveyRes;
@@ -1372,13 +1428,17 @@ function surveyPanel(p) {
     h += `<h3>読み取り結果 <span class="hint">${esc(r.name)}${r.pages > 1 ? `（${r.pages}ページ中1ページ目）` : ''}</span></h3>`;
     if (pr.points.length >= 3) {
       const poly = coordsToPoly(pr.points), a = polyArea(poly) / 1e6;
-      h += `<table><tr><th>点</th><th class="r">X</th><th class="r">Y</th></tr>${pr.points.map(q => `<tr><td>${esc(q.name)}</td><td class="r">${q.X.toFixed(3)}</td><td class="r">${q.Y.toFixed(3)}</td></tr>`).join('')}</table>
+      h += `<table><tr><th>点</th><th class="r">X</th><th class="r">Y</th></tr>${pr.points.map(q => `<tr><td>${esc(q.name)}${q.fixed ? ' <span class="hint">符号を補正</span>' : ''}</td><td class="r">${q.X.toFixed(3)}</td><td class="r">${q.Y.toFixed(3)}</td></tr>`).join('')}</table>
         <div class="calc">座標から計算した面積 <b>${a.toFixed(2)}㎡</b>${pr.area ? `<br>図面に書かれた地積 ${pr.area.toFixed(2)}㎡（差 ${(a - pr.area).toFixed(2)}㎡）` : ''}</div>
+        ${pr.area && Math.abs(a - pr.area) > pr.area * .02 ? '<p class="warn">⚠ 面積が地積と2%以上ちがいます。読み間違いがないか、下の文字・座標を測量図と見比べてください。</p>' : ''}
         <div class="acts"><button class="btn sm primary" data-sv="poly">この座標で敷地を作る</button></div>`;
-    } else h += `<p class="hint">${r.isPdf && pr.lines ? '座標の表は見つかりませんでした。' : '文字を読み取れない図面（スキャン・写真）です。'}下図として表示しています。「2点で縮尺合わせ」→「下図を動かす」→「敷地境界をなぞる」で敷地を作れます。</p>`;
+    } else h += `<p class="hint">${r.ocrText != null ? 'OCR の結果に座標の表は見つかりませんでした。' : r.isPdf && pr.lines ? '座標の表は見つかりませんでした。' : 'スキャン・写真の図面です。OCR（文字認識）で数字を読み取れます。'}座標の表がない図面は「2点で縮尺合わせ」→「下図を動かす」→「敷地境界をなぞる」で敷地を作ります。</p>`;
     if (pr.area && pr.points.length < 3) h += `<p class="hint">図面の地積：${pr.area.toFixed(2)}㎡</p>`;
+    if (r.ocrText != null) h += `<label class="f">読み取った文字（間違いを直したり、座標を「K1 -12345.120 5432.100」の形で打ち込んだりできます）<textarea class="ocrtxt" id="ocrText">${esc(r.ocrText)}</textarea></label>
+      <div class="acts"><button class="btn sm" data-sv="reparse">この文字から読み直す</button></div>`;
     h += `<div class="acts"><button class="btn sm" data-sv="close">閉じる</button></div>`;
   }
+  if (p.underlay) h += `<div class="acts"><button class="btn sm primary" data-sv="ocrAll">OCR：ページ全体を読む</button><button class="btn sm" data-sv="ocrArea">OCR：範囲を選ぶ</button>${r && r.ocrText == null ? '<button class="btn sm" data-sv="typeIn">座標を手で入れる</button>' : ''}</div>`;
   const ul = p.underlay;
   if (ul) {
     const den = ul.paperMmPerPx ? Math.round(ul.mmpp / ul.paperMmPerPx) : null;
@@ -1712,6 +1772,7 @@ function startApp() {
       showTab('site'); edSite.select(null); commit();
       edSite.fitted = false; edSite.fit();
       toast(r.parsed.points.length >= 3 ? `座標を ${r.parsed.points.length} 点読み取りました。右の「この座標で敷地を作る」を押してください`
+        : r.isPdf && !r.parsed.lines ? `スキャンの図面です。右の「OCR：ページ全体を読む」で数字を読み取れます（縮尺は仮に 1/${den}）`
         : r.paperMmPerPx ? `下図にしました（縮尺 1/${den}${r.parsed.scale ? '：図面から読み取り' : '：仮'}）。必要なら「2点で縮尺合わせ」をしてください`
         : '下図にしました。「2点で縮尺合わせ」で大きさを合わせてください');
     } catch (err) { console.error(err); toast('読み込めませんでした：' + err.message); }
