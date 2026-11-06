@@ -15,7 +15,7 @@
 | --- | --- | --- | --- |
 | 1 | 肥後銀行 | https://www.higobank.co.jp/rate/loanrate.html | 自動取得はブロックされる。検索結果の公式ページ情報で補う |
 | 2 | 熊本銀行 | https://www.kumamotobank.co.jp/price/loaninterest/index.html | 自動取得はブロックされる。イー・ローン https://www.eloan.co.jp/lender/0587/ で補う |
-| 3 | 信金（熊本第一信用金庫） | https://www.daiichishinkin.co.jp/personal/loan/housing.php ／ car.php | 熊本県内の信金の代表として熊本第一信金を使う |
+| 3 | 信金（熊本中央信用金庫） | https://www.kumachu.jp/loan/ （カー: carlife.html・topgear.html ／ リフォーム: reformplan.html・reform.html ／ 住宅: 商品説明書 pdf/jyuutaku.pdf） | 住宅ローンはWebページがなく商品説明書PDFのみ。PDFの「現在」日付を必ず書く。変動金利の数値は載っていない |
 | 4 | 西日本シティ銀行 | https://www.ncbank.co.jp/loan/housing/ ／ /loan/mycar/app/ ／ /loan/mycar/ez/ ／ /loan/housing/reform-app/ ／ /loan/housing/reform/ | 住宅ローン10年固定は商品ページから要確認 |
 | 5 | JA（JAたまな＝玉名農業協同組合） | マイカー: https://ja-netloan.jp/mycar/summary/4300/8926/ ／ リフォーム: https://ja-netloan.jp/reform/summary/4300/8926/ （JAネットローン、JAコード 8926） | 住宅ローンの金利はWeb上に公開されていない（2026-11時点）。見つからなければ「未確認（窓口 0968-72-3333 等で確認）」と書く。保証料は別 |
 | 6 | 九州労金 | https://kyusyu-rokin.com/rate/ （元データ: `/article_source/data/rate/files/loan_YYYYMMDD.csv`、Shift_JIS） | 最大引下げ後の金利を載せる。住宅ローンは保証料別 |
