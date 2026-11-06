@@ -2,7 +2,7 @@
   --bg:#f6f5f1; --surface:#ffffff; --surface-2:#fcfcfb; --line:#e3e1da; --line-2:#efede7;
   --ink:#1d1d1b; --ink-2:#52514e; --ink-3:#7a7974;
   --accent:#1f5c46; --accent-ink:#ffffff; --accent-soft:#e6efe9;
-  --s-income:#2a78d6; --s-expense:#eb6834; --s-save:#1f5c46;
+  --s-income:#2a78d6; --s-expense:#eb6834; --s-compare:#1baf7a; --s-save:#1f5c46;
   --critical:#d03b3b; --critical-soft:#fbeaea; --good:#0b7a0b;
   --grid:#ecebe6; --axis:#a9a8a2;
   color-scheme:light;
@@ -12,7 +12,7 @@
     --bg:#121211; --surface:#1a1a19; --surface-2:#1a1a19; --line:#33332f; --line-2:#262624;
     --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#97968d;
     --accent:#5fb393; --accent-ink:#0f1f19; --accent-soft:#1f2e28;
-    --s-income:#3987e5; --s-expense:#d95926; --s-save:#4fa585;
+    --s-income:#3987e5; --s-expense:#d95926; --s-compare:#199e70; --s-save:#4fa585;
     --critical:#e06363; --critical-soft:#3a2020; --good:#3fbf3f;
     --grid:#2a2a28; --axis:#5c5b56;
     color-scheme:dark;
@@ -22,7 +22,7 @@
   --bg:#121211; --surface:#1a1a19; --surface-2:#1a1a19; --line:#33332f; --line-2:#262624;
   --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#97968d;
   --accent:#5fb393; --accent-ink:#0f1f19; --accent-soft:#1f2e28;
-  --s-income:#3987e5; --s-expense:#d95926; --s-save:#4fa585;
+  --s-income:#3987e5; --s-expense:#d95926; --s-compare:#199e70; --s-save:#4fa585;
   --critical:#e06363; --critical-soft:#3a2020; --good:#3fbf3f;
   --grid:#2a2a28; --axis:#5c5b56;
   color-scheme:dark;
@@ -112,6 +112,8 @@ table.cf thead .sticky{z-index:3}
 table.cf td.tot{font-weight:700}
 table.cf td.neg{color:var(--critical)}
 table.cf tr.ret td{background:var(--accent-soft)}
+details summary{cursor:pointer;color:var(--accent);font-size:13px}
+.card.pol{border-left:4px solid var(--accent)}
 table.cf td.ev{text-align:left;color:var(--ink-2);max-width:220px;overflow:hidden;text-overflow:ellipsis}
 
 /* protection */
@@ -151,5 +153,7 @@ footer.note{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-3
   table.cf th,table.cf td{padding:2px 4px}
   table.cf thead th{position:static}
   #tab-cf .card.table-card{break-before:page}
-  #tab-prot{break-before:page}
+  #tab-prot,#tab-policy{break-before:page}
+  [data-del-pol],details:not([open]){display:none!important}
+  .card.pol{break-inside:auto}
 }

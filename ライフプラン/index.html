@@ -24,6 +24,7 @@
     <button data-tab="basic" aria-selected="true">① 家族・収入</button>
     <button data-tab="expense">② 支出</button>
     <button data-tab="event">③ ライフイベント</button>
+    <button data-tab="policy">④ 積立保険</button>
     <button data-tab="cf">キャッシュフロー</button>
     <button data-tab="prot">必要保障額</button>
   </nav>
@@ -112,14 +113,31 @@
 <!-- ② 支出 -->
 <section class="tab input" id="tab-expense">
   <div class="card">
-    <h2>生活費</h2>
-    <div class="grid">
-      <label class="f">基本生活費（住居・教育・保険を除く）<div class="u"><input type="number" data-k="living.current"><span>万円/年</span></div></label>
+    <h2>生活費 <label class="chk" style="font-weight:400"><input type="checkbox" data-k="living.detail"> 内訳（食費・携帯など）で入力する</label></h2>
+    <div id="livingDetail">
+      <div class="grid2">
+        <div>
+          <h3 style="margin-top:0">毎月の支出</h3>
+          <table class="rows"><thead><tr><th>項目</th><th style="text-align:right">月額（円）</th><th></th></tr></thead><tbody id="livItems"></tbody></table>
+          <button class="btn sm" id="bAddLiv" style="margin-top:8px">＋ 項目を追加</button>
+        </div>
+        <div>
+          <h3 style="margin-top:0">年に数回の支出</h3>
+          <table class="rows"><thead><tr><th>項目</th><th style="text-align:right">年額（円）</th><th></th></tr></thead><tbody id="livYearly"></tbody></table>
+          <button class="btn sm" id="bAddLivY" style="margin-top:8px">＋ 項目を追加</button>
+        </div>
+      </div>
+      <div class="calc" id="livCalc"></div>
+      <p class="hint">家賃・住宅ローン（住まい）、学費・塾・習い事（教育費）、保険料、車の費用は、それぞれの欄で計算するので、ここには入れません。</p>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <label class="f">基本生活費（住居・教育・保険・車を除く）<div class="u"><input type="number" data-k="living.current" id="livCurrent"><span>万円/年</span></div></label>
       <label class="f">本人が退職した後の生活費<div class="u"><input type="number" data-k="living.retired"><span>万円/年</span></div></label>
-      <label class="f">その他の支出（趣味・交際など）<div class="u"><input type="number" data-k="living.other"><span>万円/年</span></div></label>
+      <label class="f">その他の支出（上の内訳以外）<div class="u"><input type="number" data-k="living.other"><span>万円/年</span></div></label>
       <label class="f">物価上昇率<div class="u"><input type="number" step="0.1" data-k="living.inflation"><span>%/年</span></div></label>
     </div>
-    <p class="hint">物価上昇率は、生活費・その他の支出・車の費用にかけます。月の生活費 × 12 で年額になります（例：月25万円 → 300万円）。</p>
+    <button class="btn sm" id="bRetired" style="margin-top:8px">退職後の生活費を「今の80%」にする</button>
+    <p class="hint">物価上昇率は、生活費・その他の支出・車の費用にかけます。</p>
   </div>
 
   <div class="card">
@@ -148,9 +166,9 @@
 
   <div class="grid2">
     <div class="card">
-      <h2>保険料</h2>
+      <h2>保険料 <span class="sub">医療・がん・収入保障など。積立保険は「④ 積立保険」へ</span></h2>
       <div class="grid">
-        <label class="f">今の保険料（世帯合計）<div class="u"><input type="number" step="0.1" data-k="ins.monthly"><span>万円/月</span></div></label>
+        <label class="f">掛け捨て保険の保険料（世帯合計）<div class="u"><input type="number" step="0.1" data-k="ins.monthly"><span>万円/月</span></div></label>
         <label class="f">払い終わる本人の年齢<div class="u"><input type="number" data-k="ins.untilAge"><span>歳</span></div></label>
       </div>
     </div>
@@ -183,6 +201,20 @@
   </div>
 </section>
 
+<!-- ④ 積立保険 -->
+<section class="tab input result" id="tab-policy">
+  <div class="card">
+    <h2>積立保険・貯蓄型保険 <span class="sub">終身保険・個人年金・学資保険・養老保険・変額保険・外貨建て保険など</span></h2>
+    <div class="grid">
+      <label class="f">本人の所得税率<select data-k="tax.income"><option value="5">5%（課税所得〜195万円）</option><option value="10">10%（〜330万円）</option><option value="20">20%（〜695万円）</option><option value="23">23%（〜900万円）</option><option value="33">33%（〜1,800万円）</option><option value="40">40%（〜4,000万円）</option><option value="45">45%（4,000万円超）</option></select></label>
+      <label class="f">比べる積立（NISAなど）の利回り<div class="u"><input type="number" step="0.1" data-k="tax.compareRate"><span>%/年</span></div></label>
+    </div>
+    <p class="hint">税金は、所得税（復興特別所得税を含む）と住民税10%で計算します。解約・満期の一括受取は一時所得（(受取額−払込総額−50万円)×1/2 に課税）、年金受取は雑所得として概算します。契約者と受取人が同じ人の場合の計算です。</p>
+  </div>
+  <div id="policies"></div>
+  <button class="btn primary no-print" id="bAddPol">＋ 積立保険を追加</button>
+</section>
+
 <!-- キャッシュフロー -->
 <section class="tab result" id="tab-cf">
   <div class="kpis" id="kpis"></div>
@@ -211,7 +243,7 @@
       <label class="f">末子独立後の生活費（今の何%）<div class="u"><input type="number" data-k="prot.rate2"><span>%</span></div></label>
       <label class="f">配偶者が何歳まで計算するか<div class="u"><input type="number" data-k="prot.spouseUntil"><span>歳</span></div></label>
       <label class="f">お葬式・整理資金<div class="u"><input type="number" data-k="prot.funeral"><span>万円</span></div></label>
-      <label class="f">加入中の死亡保険金<div class="u"><input type="number" data-k="prot.cover"><span>万円</span></div></label>
+      <label class="f">加入中の死亡保険金（④以外）<div class="u"><input type="number" data-k="prot.cover"><span>万円</span></div></label>
       <label class="f">死亡退職金・弔慰金<div class="u"><input type="number" data-k="prot.deathSeverance"><span>万円</span></div></label>
       <label class="f">遺族厚生年金<div class="u"><input type="number" data-k="prot.koseiOverride" placeholder="自動"><span>万円/年</span></div></label>
     </div>

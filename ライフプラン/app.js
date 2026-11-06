@@ -22,6 +22,16 @@ const IZOKU_KID12 = 23.93;        // 子の加算 第1子・第2子
 const IZOKU_KID3 = 7.98;          // 子の加算 第3子以降
 const CHUKOREI = 62.38;           // 中高齢寡婦加算
 const NET_TO_GROSS = 0.78;        // 手取り ÷ 0.78 ≒ 額面年収
+const RESIDENT_TAX = 0.10;        // 住民税（所得割）
+const FUKKO = 1.021;              // 所得税 × 1.021（復興特別所得税）
+// 生命保険料控除（2012年以降の契約・年間保険料 円 → 控除額 円）
+const dedIT = P => P <= 20000 ? P : P <= 40000 ? P / 2 + 10000 : P <= 80000 ? P / 4 + 20000 : 40000;
+const dedRes = P => P <= 12000 ? P : P <= 32000 ? P / 2 + 6000 : P <= 56000 ? P / 4 + 14000 : 28000;
+// 生活費の内訳の初期値（円）
+const LIV_ITEMS = [['食費', 70000], ['外食', 15000], ['日用品', 10000], ['水道光熱費', 25000], ['携帯電話', 12000],
+  ['インターネット', 5000], ['交通費', 5000], ['被服・美容', 12000], ['医療費', 5000], ['こづかい（本人）', 25000],
+  ['こづかい（配偶者）', 15000], ['趣味・娯楽', 10000], ['交際費', 5000], ['サブスク', 3000]];
+const LIV_YEARLY = [['冠婚葬祭', 50000], ['家電・家具の買い替え', 100000], ['帰省', 50000]];
 
 /* ===== データ ===== */
 const KEY = 'livii-lifeplan-v1';
@@ -44,7 +54,15 @@ function newPlan(sample) {
     ],
     childAllowance: true,
     save: { current: 800, rate: 1.0 }, otherIncome: 0,
-    living: { current: 270, retired: 230, other: 20, inflation: 1.0 },
+    living: { current: 280, retired: 230, other: 10, inflation: 1.0, detail: true,
+              items: LIV_ITEMS.map(([name, amount]) => ({ name, amount })), yearly: LIV_YEARLY.map(([name, amount]) => ({ name, amount })) },
+    tax: { income: '10', compareRate: 3.0 },
+    policies: [
+      { ...newPolicy(), name: '終身保険（加入中）', status: '加入中', type: '終身保険', monthly: 15000, startYear: Y0 - 5, payYears: 25,
+        rate: 0.8, death: 500, action: '持ち続ける', actionYear: Y0 + 30 },
+      { ...newPolicy(), name: '個人年金保険（検討中）', status: '新規検討', type: '個人年金保険', monthly: 10000, startYear: Y0, payYears: 25,
+        rate: 1.2, death: 0, deduct: '個人年金', action: '年金で受け取る', actionYear: Y0 + 30, annYears: 10 },
+    ],
     house: { type: '賃貸', rent: 7.5, loanMonthly: 0, loanEnd: Y0, upkeep: 0,
              buy: true, buyYear: Y0 + 2, price: 3200, down: 300, costRate: 7, rate: 0.9, years: 35, upkeepBuy: 25 },
     ins: { monthly: 2.5, untilAge: 65 },
@@ -57,16 +75,38 @@ function newPlan(sample) {
   };
   if (!sample) {
     p.self.name = '本人'; p.spouse.name = '配偶者'; p.kids = []; p.events = [];
-    p.house.buy = false; p.prot.cover = 0;
+    p.house.buy = false; p.prot.cover = 0; p.policies = []; p.living.detail = false; p.living.current = 300;
   }
   p.prot.age = Y0 - p.self.birthYear;
+  if (p.living.detail) syncLiving(p);
   return p;
+}
+function newPolicy() {
+  return { name: '', status: '新規検討', type: '終身保険', insured: '本人', monthly: 10000, startYear: Y0, payYears: 20,
+    rate: 1.0, chargeYears: 10, chargeRate: 30, table: '', death: 300, deduct: '一般', action: '一括で受け取る',
+    actionYear: Y0 + 20, annYears: 10, inCF: true };
+}
+// 前のバージョンで保存したプランに、新しい項目を足す
+function migrate(p) {
+  const d = newPlan(false);
+  for (const k of Object.keys(d)) if (p[k] == null) p[k] = d[k];
+  for (const k of Object.keys(d.living)) if (p.living[k] == null) p.living[k] = d.living[k];
+  for (const k of Object.keys(d.tax)) if (p.tax[k] == null) p.tax[k] = d.tax[k];
+  p.policies.forEach(x => { const n = newPolicy(); for (const k of Object.keys(n)) if (x[k] == null) x[k] = n[k]; });
+  return p;
+}
+function syncLiving(p) {
+  const L = p.living;
+  if (!L.detail) return;
+  const m = L.items.reduce((s, x) => s + num(x.amount), 0), y = L.yearly.reduce((s, x) => s + num(x.amount), 0);
+  L.current = Math.round((m * 12 + y) / 1000) / 10;
 }
 
 let store = { plans: [], current: null, tab: 'basic' };
 function load() {
   try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.plans && s.plans.length) store = s; } catch (e) {}
   if (!store.plans.length) { const p = newPlan(true); store.plans = [p]; store.current = p.id; }
+  store.plans.forEach(migrate);
   if (!store.plans.find(p => p.id === store.current)) store.current = store.plans[0].id;
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
@@ -103,7 +143,83 @@ function workIncome(m, age, t) {
   return { salary, sev, pen };
 }
 
-function simulate(p) {
+/* ===== 積立保険 ===== */
+const taxRate = p => num(p.tax.income) / 100 * FUKKO + RESIDENT_TAX;
+function parsePoints(str) {
+  return String(str || '').split(/[,、\s]+/).map(x => x.split(/[:：]/))
+    .filter(a => a.length === 2 && a[0] !== '' && a[1] !== '' && !isNaN(+a[0]) && !isNaN(+a[1]))
+    .map(a => [+a[0], +a[1]]).sort((a, b) => a[0] - b[0]);
+}
+function irr(flows) {
+  const npv = r => flows.reduce((s, f, i) => s + f / Math.pow(1 + r, i), 0);
+  let lo = -0.9, hi = 0.5;
+  if (npv(lo) * npv(hi) > 0) return null;
+  for (let k = 0; k < 100; k++) { const m = (lo + hi) / 2; if (npv(lo) * npv(m) <= 0) hi = m; else lo = m; }
+  return (lo + hi) / 2;
+}
+function deductSaving(p, pol) {
+  if (pol.deduct === '対象外') return 0;
+  const P = num(pol.monthly) * 12;
+  return (dedIT(P) * num(p.tax.income) / 100 * FUKKO + dedRes(P) * RESIDENT_TAX) / 10000;
+}
+// 1つの保険を、契約した年から年ごとに計算する（金額は万円）
+function policyCalc(p, pol) {
+  const start = num(pol.startYear) || Y0, A = num(pol.monthly) * 12 / 10000;
+  const r = num(pol.rate) / 100, cr = num(p.tax.compareRate) / 100, tr = taxRate(p);
+  const payYears = num(pol.payYears), Y = Math.max(num(pol.actionYear) || start, start);
+  const ann = pol.action === '年金で受け取る', hold = pol.action === '持ち続ける';
+  const ins = pol.insured === '配偶者' && p.spouse.enabled ? p.spouse : p.self;
+  const who = pol.insured === '配偶者' && p.spouse.enabled ? (p.spouse.name || '配偶者') : (p.self.name || '本人');
+  const lastY = ann ? Math.max(start, Y - 1) : hold ? Math.max(Y, start + payYears - 1) : Y;
+  const pts = parsePoints(pol.table), lastPt = pts.length ? pts[pts.length - 1][0] : 0;
+  const rows = [];
+  let F = 0, paid = 0, C = 0, cvPrev = 0;
+  for (let y = start; y <= lastY && rows.length < 100; y++) {
+    const t = y - start + 1;
+    const prem = t <= payYears ? A : 0;
+    paid += prem;
+    F = (F + prem) * (1 + r);
+    let cv;
+    if (pts.length && t <= lastPt) {
+      let a = [0, 0], b = pts[0];
+      for (const q of pts) { if (q[0] >= t) { b = q; break; } a = q; }
+      const ratio = b[0] === a[0] ? b[1] : a[1] + (b[1] - a[1]) * (t - a[0]) / (b[0] - a[0]);
+      cv = paid * ratio / 100;
+    } else if (pts.length) {
+      cv = (cvPrev + prem) * (1 + r);
+    } else {
+      const cy = num(pol.chargeYears);
+      cv = F - (cy > 0 && t <= cy ? F * num(pol.chargeRate) / 100 * (1 - (t - 1) / cy) : 0);
+    }
+    cvPrev = cv;
+    C = (C + prem) * (1 + cr);
+    const tax = Math.max(0, cv - paid - 50) / 2 * tr;
+    rows.push({ year: y, t, age: y - num(ins.birthYear), who, prem, paid, cv, tax, net: cv - tax, compare: C, notes: [] });
+  }
+  const ev = ann ? rows[rows.length - 1] : (rows.find(x => x.year === Y) || rows[rows.length - 1]);
+  const res = { rows, ev, Y, ann, hold, who, A, payYears, paid: ev.paid, saving: deductSaving(p, pol) };
+  if (ann) {
+    const N = Math.max(1, num(pol.annYears)), fund = ev.cv;
+    res.N = N;
+    res.annual = r ? fund * r / (1 - Math.pow(1 + r, -N)) : fund / N;
+    res.gross = res.annual * N;
+    const annTax = Math.max(0, res.annual * (1 - (res.gross > 0 ? ev.paid / res.gross : 0))) * tr;
+    res.annNet = res.annual - annTax; res.tax = annTax * N; res.net = res.annNet * N;
+  } else {
+    res.gross = ev.cv; res.tax = ev.tax; res.net = ev.net;
+  }
+  // 税引後の実質利回り（生命保険料控除の減税も含む）
+  const flows = [];
+  const add = (i, v) => { while (flows.length <= i) flows.push(0); flows[i] += v; };
+  rows.filter(x => x.year <= ev.year).forEach(x => { if (x.prem) { add(x.t - 1, -x.prem); add(x.t, res.saving); } });
+  if (ann) for (let k = 0; k < res.N; k++) add(Y - start + 1 + k, res.annNet);
+  else add(ev.t, res.net);
+  res.irr = irr(flows);
+  res.breakEven = rows.find(x => x.paid > 0 && x.cv >= x.paid);
+  return res;
+}
+
+function simulate(p, opt = {}) {
   const rows = [];
   const start = num(p.startYear) || Y0;
   const sb = num(p.self.birthYear);
@@ -113,6 +229,9 @@ function simulate(p) {
   const buying = h.type === '賃貸' && h.buy;
   const buyPay = buying ? pmtYear(Math.max(0, num(h.price) - num(h.down)), num(h.rate), num(h.years)) : 0;
   let s = num(p.save.current);
+  const pcs = p.policies.map((pol, i) => ({ pol, i }))
+    .filter(({ pol, i }) => i === opt.include || (pol.inCF && i !== opt.exclude))
+    .map(({ pol }) => ({ pol, c: policyCalc(p, pol) }));
 
   for (let y = start; y <= end && rows.length < 120; y++) {
     const t = y - start, inf = Math.pow(1 + num(p.living.inflation) / 100, t);
@@ -134,6 +253,14 @@ function simulate(p) {
       r.allowance += i >= 2 ? 36 : ka < 3 ? 18 : 12;
     });
     r.otherInc = num(p.otherIncome);
+    r.polIn = 0; r.polPrem = 0;
+    for (const { pol, c } of pcs) {
+      const row = c.rows.find(x => x.year === y);
+      if (row && (c.hold || y <= c.ev.year)) r.polPrem += row.prem;
+      const nm = pol.name || pol.type;
+      if (pol.action === '一括で受け取る' && y === c.ev.year) { r.polIn += c.net; notes.push(`${nm} 受取`); }
+      if (c.ann && y >= c.Y && y < c.Y + c.N) { r.polIn += c.annNet; if (y === c.Y) notes.push(`${nm} 年金開始`); }
+    }
 
     // 支出
     r.living = (age < num(p.self.retireAge) ? num(p.living.current) : num(p.living.retired)) * inf;
@@ -170,8 +297,8 @@ function simulate(p) {
       }
     }
 
-    r.incTotal = r.incSelf + r.incSpouse + r.pension + r.severance + r.allowance + r.otherInc;
-    r.expTotal = r.living + r.housing + r.edu + r.ins + r.car + r.other;
+    r.incTotal = r.incSelf + r.incSpouse + r.pension + r.severance + r.allowance + r.otherInc + r.polIn;
+    r.expTotal = r.living + r.housing + r.edu + r.ins + r.polPrem + r.car + r.other;
     r.balance = r.incTotal - r.expTotal;
     s = s + (s > 0 ? s * num(p.save.rate) / 100 : 0) + r.balance;
     r.savings = s;
@@ -232,9 +359,12 @@ function protection(p, rows) {
   const pubTotal = i.spouseWork + i.spousePension + i.kiso + i.kosei + i.chukorei;
   const assets = Math.max(0, savingsAtD) + num(p.prot.deathSeverance);
   const need = Math.max(0, outTotal - pubTotal - assets);
-  const cover = num(p.prot.cover);
+  const polDeath = p.policies.filter(pol => pol.inCF && pol.insured !== '配偶者' && num(pol.death) > 0 && num(pol.startYear) <= D
+    && (pol.action === '持ち続ける' || (pol.action === '一括で受け取る' ? D <= num(pol.actionYear) : D < num(pol.actionYear))))
+    .reduce((s, pol) => s + num(pol.death), 0);
+  const cover = num(p.prot.cover) + polDeath;
   return { D, age: D - sb, endY, years: endY - D + 1, o, i, outTotal, pubTotal, savingsAtD, assets, need, cover,
-           short: need - cover, koseiYear: kosei };
+           short: need - cover, koseiYear: kosei, polDeath };
 }
 
 /* ===== 表示用 ===== */
@@ -288,6 +418,95 @@ function renderEvents() {
   bindValues($('#events'));
 }
 
+function renderLiving() {
+  const L = plan().living;
+  const rowsHtml = (key, list) => list.map((x, i) => `<tr>
+    <td><input type="text" data-k="living.${key}.${i}.name"></td>
+    <td><input type="number" step="1000" data-k="living.${key}.${i}.amount" style="width:110px"></td>
+    <td><button class="btn sm danger" data-del-liv="${key}.${i}">削除</button></td></tr>`).join('');
+  $('#livItems').innerHTML = rowsHtml('items', L.items);
+  $('#livYearly').innerHTML = rowsHtml('yearly', L.yearly);
+  bindValues($('#livItems')); bindValues($('#livYearly'));
+}
+
+const POL_TYPES = ['終身保険', '個人年金保険', '学資保険', '養老保険', '変額保険', '外貨建て保険', 'その他'];
+const POL_ACTIONS = ['一括で受け取る', '年金で受け取る', '持ち続ける'];
+function renderPolicies() {
+  const p = plan();
+  const opt = (k, list, v) => `<select data-k="${k}">${list.map(o => { const [val, lab] = Array.isArray(o) ? o : [o, o];
+    return `<option value="${val}"${val === v ? ' selected' : ''}>${lab}</option>`; }).join('')}</select>`;
+  $('#policies').innerHTML = p.policies.map((pol, i) => { const k = `policies.${i}`; return `
+  <div class="card pol">
+    <h2><input type="text" data-k="${k}.name" placeholder="保険の名前（例：〇〇生命 終身保険）" style="flex:1;min-width:180px;font-weight:700">
+      <button class="btn sm danger" data-del-pol="${i}">削除</button></h2>
+    <div class="grid">
+      <label class="f">状況${opt(k + '.status', ['加入中', '新規検討'], pol.status)}</label>
+      <label class="f">種類${opt(k + '.type', POL_TYPES, pol.type)}</label>
+      <label class="f">被保険者${opt(k + '.insured', ['本人', '配偶者'], pol.insured)}</label>
+      <label class="f">保険料<div class="u"><input type="number" step="1000" data-k="${k}.monthly"><span>円/月</span></div></label>
+      <label class="f">契約した年（する年）<div class="u"><input type="number" data-k="${k}.startYear"><span>年</span></div></label>
+      <label class="f">払込期間<div class="u"><input type="number" data-k="${k}.payYears"><span>年</span></div></label>
+      <label class="f">積立の利回り（手数料・保障の費用を引いた後）<div class="u"><input type="number" step="0.1" data-k="${k}.rate"><span>%/年</span></div></label>
+      <label class="f">解約控除がある期間<div class="u"><input type="number" data-k="${k}.chargeYears"><span>年</span></div></label>
+      <label class="f">1年目に解約したときの控除<div class="u"><input type="number" data-k="${k}.chargeRate"><span>%</span></div></label>
+      <label class="f">死亡保障額<div class="u"><input type="number" data-k="${k}.death"><span>万円</span></div></label>
+      <label class="f">生命保険料控除${opt(k + '.deduct', [['一般', '一般生命保険料控除'], ['個人年金', '個人年金保険料控除'], ['対象外', '対象外']], pol.deduct)}</label>
+      <label class="f">受け取り方${opt(k + '.action', POL_ACTIONS, pol.action)}</label>
+      <label class="f"><span data-act-label="${i}">受け取る年</span><div class="u"><input type="number" data-k="${k}.actionYear"><span data-act-age="${i}"></span></div></label>
+      <label class="f" data-ann="${i}">年金を受け取る年数<div class="u"><input type="number" data-k="${k}.annYears"><span>年</span></div></label>
+    </div>
+    <label class="f" style="margin-top:10px">設計書の解約返戻率（任意）<input type="text" data-k="${k}.table" placeholder="経過年数:返戻率%　例）5:70, 10:92, 20:104, 30:118"></label>
+    <p class="hint">設計書（保険会社の提案書）の「解約返戻率」を入れると、利回り・解約控除の設定より優先して計算します。最後の年より先は、積立の利回りで増やします。</p>
+    <label class="chk" style="margin-top:6px"><input type="checkbox" data-k="${k}.inCF"> キャッシュフロー表・必要保障額に入れる（新規検討の保険は「入った場合」の計算になります）</label>
+    <div id="polRes-${i}" style="margin-top:14px"></div>
+  </div>`; }).join('') || '<div class="card hint">積立保険はまだありません。「＋ 積立保険を追加」から入力してください。</div>';
+  bindValues($('#policies'));
+}
+
+function renderPolicyResults(p, baseRows) {
+  const pct = v => v == null ? '—' : (v * 100).toFixed(2) + '%';
+  const endAge = baseRows.length ? baseRows[baseRows.length - 1].age : 0;
+  p.policies.forEach((pol, i) => {
+    const box = document.getElementById('polRes-' + i); if (!box) return;
+    const c = policyCalc(p, pol);
+    const ev = c.ev, nm = esc(pol.name || pol.type);
+    const ratio = ev.paid > 0 ? c.net / ev.paid : 0;
+    // 加入した場合・しない場合の比較（キャッシュフロー全体）
+    const withRows = simulate(p, { include: i }), woRows = simulate(p, { exclude: i });
+    const lastW = withRows[withRows.length - 1], lastWo = woRows[woRows.length - 1];
+    const diff = lastW && lastWo ? lastW.savings - lastWo.savings : 0;
+    const nowRow = c.rows.find(x => x.year === Y0);
+    let k = kpi('払込総額', `${fmt(ev.paid)}<small>万円</small>`, `月 ${num(pol.monthly).toLocaleString('ja-JP')}円 × ${Math.min(c.payYears, ev.t)}年（${ev.year}年まで）`);
+    if (c.ann) {
+      k += kpi('年金（税引後）', `${(c.annNet).toFixed(1)}<small>万円/年</small>`, `${c.Y}年から${c.N}年間・税引前 ${c.annual.toFixed(1)}万円/年`);
+      k += kpi('受取の手取り合計', `${fmt(c.net)}<small>万円</small>`, `税金 ${fmt(c.tax)}万円（雑所得）・手取り÷払込 ${(ratio * 100).toFixed(1)}%`, ratio < 1);
+    } else {
+      const lab = c.hold ? `${ev.year}年に解約した場合の手取り` : `${ev.year}年の受取（手取り）`;
+      k += kpi(lab, `${fmt(c.net)}<small>万円</small>`, `税引前 ${fmt(c.gross)}万円・税金 ${fmt(c.tax)}万円（一時所得）`, ratio < 1);
+      k += kpi('返戻率（手取り÷払込）', `${(ratio * 100).toFixed(1)}<small>%</small>`, ratio >= 1 ? `<span class="flag ok">✓ 増えて戻ります</span>` : `<span class="flag bad">⚠ 元本割れ</span>`, ratio < 1);
+    }
+    k += kpi('税引後の実質利回り', `${pct(c.irr)}<small>/年</small>`, '生命保険料控除による減税も含む');
+    k += kpi('元本割れが終わる時期', c.breakEven ? `${c.breakEven.t}年目<small>${c.breakEven.year}年</small>` : 'この期間ではなし', c.breakEven ? `${c.who}${c.breakEven.age}歳` : '解約返戻金が払込額を下回ったまま', !c.breakEven);
+    k += kpi(`同じ額を${num(p.tax.compareRate)}%で積み立てた場合`, `${fmt(ev.compare)}<small>万円</small>`,
+      `${ev.year}年末・保険の返戻金より ${ev.compare >= ev.cv ? fmt(ev.compare - ev.cv) + '万円多い' : fmt(ev.cv - ev.compare) + '万円少ない'}（NISAなど非課税を想定）`);
+    k += kpi('生命保険料控除の減税', `${c.saving.toFixed(1)}<small>万円/年</small>`, '払込中の所得税・住民税（他の保険と合わせて上限あり）');
+    if (pol.status === '加入中' && nowRow) k += kpi(`今年（${Y0}年）解約した場合`, `${fmt(nowRow.net)}<small>万円</small>`, `払込済 ${fmt(nowRow.paid)}万円・返戻率 ${nowRow.paid ? (nowRow.cv / nowRow.paid * 100).toFixed(1) : 0}%`, nowRow.cv < nowRow.paid);
+    if (pol.status === '新規検討') k += kpi(`入った場合・入らない場合の差`, `${diff >= 0 ? '+' : ''}${fmt(diff)}<small>万円</small>`, `本人${endAge}歳時点の貯蓄${c.hold ? '。持ち続ける保険の返戻金は貯蓄に入りません' : ''}（死亡保障は含まない）`);
+    const tbl = `<table class="cf"><thead><tr><th class="l">年</th><th>経過年</th><th>${esc(c.who)}の年齢</th><th>払込累計</th><th>解約返戻金</th><th>返戻率</th><th>解約時の税金</th><th>解約時の手取り</th><th>同額の積立（${num(p.tax.compareRate)}%）</th></tr></thead><tbody>` +
+      c.rows.map(x => `<tr${x === ev ? ' class="ret"' : ''}><td class="l">${x.year}</td><td>${x.t}</td><td>${x.age}</td><td>${fmt(x.paid)}</td><td>${fmt(x.cv)}</td>
+        <td class="${x.cv < x.paid ? 'neg' : ''}">${x.paid ? (x.cv / x.paid * 100).toFixed(1) + '%' : ''}</td><td>${x.tax ? fmt(x.tax) : ''}</td><td class="tot">${fmt(x.net)}</td><td>${fmt(x.compare)}</td></tr>`).join('') + '</tbody></table>';
+    box.innerHTML = `<div class="kpis">${k}</div>
+      <div class="legend"><span><i style="background:var(--s-income)"></i>解約返戻金</span><span><i style="background:var(--s-expense)"></i>払込累計</span><span><i style="background:var(--s-compare)"></i>同額を${num(p.tax.compareRate)}%で積み立てた場合</span></div>
+      <div class="chart" id="polChart-${i}"></div>
+      <details style="margin-top:10px"><summary>年ごとの解約返戻金・手取りの表</summary><div class="cf-wrap" style="margin-top:8px">${tbl}</div></details>`;
+    drawLines(document.getElementById('polChart-' + i), c.rows, [
+      { label: '解約返戻金', color: 'var(--s-income)', get: r => r.cv, dot: true },
+      { label: '払込累計', color: 'var(--s-expense)', get: r => r.paid, dot: true },
+      { label: '同額の積立', color: 'var(--s-compare)', get: r => r.compare, dot: true },
+    ], [{ label: '解約時の手取り', color: 'transparent', get: r => r.net }]);
+  });
+}
+
 function renderPlanSelect() {
   $('#planSel').innerHTML = store.plans.map(p =>
     `<option value="${p.id}"${p.id === store.current ? ' selected' : ''}>${esc(p.name || '名前なし')}（${esc(p.createdOn || '')}）</option>`).join('');
@@ -307,6 +526,21 @@ function updateDerived() {
   const yr = pmtYear(loan, num(h.rate), num(h.years));
   $('#loanCalc').style.display = h.buy ? '' : 'none';
   $('#loanCalc').innerHTML = `借入額 <b class="num">${fmt(loan)}</b> 万円 → 毎月の返済 <b class="num">${(yr / 12).toFixed(1)}</b> 万円（年 ${fmt(yr)} 万円・元利均等）／ 総返済額 ${fmt(yr * num(h.years))} 万円・購入時に必要な現金 ${fmt(num(h.down) + num(h.price) * num(h.costRate) / 100)} 万円`;
+  const L = p.living;
+  $('#livingDetail').style.display = L.detail ? '' : 'none';
+  $('#livCurrent').disabled = !!L.detail;
+  if (L.detail) {
+    const m = L.items.reduce((s, x) => s + num(x.amount), 0), y = L.yearly.reduce((s, x) => s + num(x.amount), 0);
+    $('#livCalc').innerHTML = `毎月 <b class="num">${m.toLocaleString('ja-JP')}</b> 円 × 12 ＋ 年に数回 <b class="num">${y.toLocaleString('ja-JP')}</b> 円 ＝ 年 <b class="num">${fmt(m * 12 + y)}</b> 円（<b class="num">${num(L.current)}</b> 万円）`;
+    $('#livCurrent').value = L.current;
+  }
+  p.policies.forEach((pol, i) => {
+    const lab = document.querySelector(`[data-act-label="${i}"]`); if (!lab) return;
+    lab.textContent = pol.action === '年金で受け取る' ? '年金を受け取り始める年' : pol.action === '持ち続ける' ? '解約返戻金を見る年' : '受け取る年（解約・満期）';
+    const ins = pol.insured === '配偶者' ? p.spouse : p.self;
+    document.querySelector(`[data-act-age="${i}"]`).textContent = `${num(pol.actionYear) - num(ins.birthYear)}歳`;
+    document.querySelector(`[data-ann="${i}"]`).style.display = pol.action === '年金で受け取る' ? '' : 'none';
+  });
   p.events.forEach((e, i) => { const c = document.querySelector(`[data-ev-age="${i}"]`); if (c) c.textContent = `${num(e.year) - num(p.self.birthYear)}歳`; });
 }
 
@@ -357,7 +591,7 @@ function hover(el, rows, f, lines) {
     const r = rows[i], cx = f.x(i) + f.step / 2;
     cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.style.display = '';
     dots.innerHTML = lines.filter(l => l.dot).map(l => `<circle cx="${cx}" cy="${f.y(l.get(r))}" r="4.5" fill="${l.color}" stroke="var(--surface)" stroke-width="2"/>`).join('');
-    tip.innerHTML = `<b>${r.year}年（本人${r.age}歳）</b>` + lines.map(l =>
+    tip.innerHTML = `<b>${r.year}年（${esc(r.who || '本人')}${r.age}歳）</b>` + lines.map(l =>
       `<div class="r"><span><i style="background:${l.color}"></i>${l.label}</span><span class="num">${fmt(l.get(r))} 万円</span></div>`).join('')
       + (r.notes.length ? `<div class="hint">${esc(r.notes.join('・'))}</div>` : '');
     tip.style.display = 'block';
@@ -387,19 +621,20 @@ function drawSavings(rows) {
 }
 
 function drawFlow(rows) {
-  const el = $('#chFlow');
-  const vals = rows.flatMap(r => [r.incTotal, r.expTotal]);
+  drawLines($('#chFlow'), rows, [
+    { label: '収入', color: 'var(--s-income)', get: r => r.incTotal, dot: true },
+    { label: '支出', color: 'var(--s-expense)', get: r => r.expTotal, dot: true },
+  ], [{ label: '年間収支', color: 'transparent', get: r => r.balance }]);
+}
+function drawLines(el, rows, lines, extra = []) {
+  const vals = rows.flatMap(r => lines.map(l => l.get(r)));
   const sc = niceScale(0, Math.max(...vals));
   const f = chartFrame(rows, sc.lo, sc.hi);
   const path = get => rows.map((r, i) => `${i ? 'L' : 'M'}${(f.x(i) + f.step / 2).toFixed(1)},${f.y(get(r)).toFixed(1)}`).join('');
-  const lines = [
-    { label: '収入', color: 'var(--s-income)', get: r => r.incTotal, dot: true },
-    { label: '支出', color: 'var(--s-expense)', get: r => r.expTotal, dot: true },
-  ];
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="年間の収入と支出">${axes(rows, sc, f)}
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img">${axes(rows, sc, f)}
     ${lines.map(l => `<path d="${path(l.get)}" fill="none" stroke="${l.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
     <line class="cross" y1="${PT}" y2="${H - PB}" stroke="var(--ink-3)" stroke-width="1" style="display:none"/><g class="dots"></g></svg><div class="tip"></div>`;
-  hover(el, rows, f, [...lines, { label: '年間収支', color: 'transparent', get: r => r.balance }]);
+  hover(el, rows, f, [...lines, ...extra]);
 }
 
 /* ===== 結果 ===== */
@@ -424,8 +659,8 @@ function renderCF(p, rows) {
 
   const kids = p.kids.map(k => esc(k.name || '子'));
   const sp = p.spouse.enabled;
-  const inc = [['incSelf', '本人給与'], ...(sp ? [['incSpouse', '配偶者給与']] : []), ['pension', '年金'], ['severance', '退職金'], ['allowance', '児童手当'], ['otherInc', 'その他']];
-  const exp = [['living', '生活費'], ['housing', '住居費'], ['edu', '教育費'], ['ins', '保険料'], ['car', '車'], ['other', 'その他']];
+  const inc = [['incSelf', '本人給与'], ...(sp ? [['incSpouse', '配偶者給与']] : []), ['pension', '年金'], ['severance', '退職金'], ['allowance', '児童手当'], ['polIn', '保険の受取'], ['otherInc', 'その他']];
+  const exp = [['living', '生活費'], ['housing', '住居費'], ['edu', '教育費'], ['ins', '保険料'], ['polPrem', '積立保険'], ['car', '車'], ['other', 'その他']];
   const ages = 2 + (sp ? 1 : 0) + kids.length;
   let html = `<thead><tr class="grp"><th class="sticky l" colspan="1"></th><th colspan="${ages - 1}">年齢</th><th></th>
     <th colspan="${inc.length + 1}">収入</th><th colspan="${exp.length + 1}">支出</th><th colspan="2"></th></tr>
@@ -476,7 +711,8 @@ function renderProt(p, rows) {
     row('今の貯蓄（万一の年の初め）', Math.max(0, r.savingsAtD)) +
     (num(p.prot.deathSeverance) ? row('死亡退職金・弔慰金', num(p.prot.deathSeverance)) : '') +
     `<tr class="t"><td><span class="swatch" style="background:var(--s-income)"></span>合計</td><td>${fmt(r.pubTotal + r.assets)} 万円</td></tr>` +
-    row('加入中の死亡保険', r.cover, 'var(--s-save)');
+    row('加入中の死亡保険（④以外）', num(p.prot.cover), 'var(--s-save)') +
+    (r.polDeath ? row('積立保険の死亡保障（④）', r.polDeath, 'var(--s-save)') : '');
 }
 
 function renderResults() {
@@ -484,12 +720,13 @@ function renderResults() {
   const rows = simulate(p);
   renderCF(p, rows);
   renderProt(p, rows);
+  renderPolicyResults(p, rows);
   $('#phTitle').textContent = `${p.name || ''} ライフプラン`;
   $('#phSub').textContent = `作成日 ${p.createdOn || ''}${p.staff ? '　担当 ' + p.staff : ''}　（金額は万円）${p.memo ? '　' + p.memo : ''}`;
 }
 
 function renderAll() {
-  renderPlanSelect(); bindValues(); renderKids(); renderEvents(); updateDerived(); renderResults();
+  renderPlanSelect(); bindValues(); renderKids(); renderEvents(); renderLiving(); renderPolicies(); updateDerived(); renderResults();
 }
 
 /* ===== 操作 ===== */
@@ -500,7 +737,18 @@ function onEdit(e) {
   if (el.type === 'checkbox') v = el.checked;
   else if (el.type === 'number') v = el.value === '' ? '' : +el.value;
   else v = el.value;
-  setPath(plan(), el.dataset.k, v);
+  const p = plan();
+  setPath(p, el.dataset.k, v);
+  if (el.dataset.k.startsWith('living.')) syncLiving(p);
+  const m = el.dataset.k.match(/^policies\.(\d+)\.type$/);
+  if (m) { // 種類を選んだら、よくある設定にそろえる
+    const pol = p.policies[+m[1]];
+    pol.deduct = v === '個人年金保険' ? '個人年金' : '一般';
+    if (v === '個人年金保険') { pol.action = '年金で受け取る'; pol.death = 0; }
+    if (v === '学資保険' || v === '養老保険') pol.action = '一括で受け取る';
+    if (v === '学資保険') pol.death = 0;
+    bindValues(el.closest('.pol'));
+  }
   updateDerived();
   if (el.dataset.k === 'name' || el.dataset.k === 'createdOn') renderPlanSelect();
   clearTimeout(timer);
@@ -516,6 +764,12 @@ document.addEventListener('click', e => {
     store.tab = t.dataset.tab; showTab(); save();
   } else if (t.dataset.delKid != null) {
     p.kids.splice(+t.dataset.delKid, 1); renderKids(); renderResults(); save();
+  } else if (t.dataset.delLiv != null) {
+    const [key, i] = t.dataset.delLiv.split('.'); p.living[key].splice(+i, 1); syncLiving(p);
+    renderLiving(); updateDerived(); renderResults(); save();
+  } else if (t.dataset.delPol != null) {
+    if (!confirm('この保険を削除しますか？')) return;
+    p.policies.splice(+t.dataset.delPol, 1); renderPolicies(); updateDerived(); renderResults(); save();
   } else if (t.dataset.delEv != null) {
     p.events.splice(+t.dataset.delEv, 1); renderEvents(); updateDerived(); renderResults(); save();
   }
@@ -533,6 +787,10 @@ $('#bAddEv').onclick = () => {
   plan().events.push({ year: Y0 + 1, name: '', amount: -100, repeat: false, count: 1 });
   renderEvents(); updateDerived(); renderResults(); save();
 };
+$('#bAddLiv').onclick = () => { plan().living.items.push({ name: '', amount: 0 }); renderLiving(); save(); };
+$('#bAddLivY').onclick = () => { plan().living.yearly.push({ name: '', amount: 0 }); renderLiving(); save(); };
+$('#bRetired').onclick = () => { const p = plan(); p.living.retired = Math.round(num(p.living.current) * 0.8); bindValues(); renderResults(); save(); };
+$('#bAddPol').onclick = () => { plan().policies.push(newPolicy()); renderPolicies(); updateDerived(); renderResults(); save(); };
 $('#planSel').onchange = e => { store.current = e.target.value; save(); renderAll(); };
 $('#bNew').onclick = () => { const p = newPlan(false); store.plans.push(p); store.current = p.id; store.tab = 'basic'; save(); renderAll(); showTab(); };
 $('#bDup').onclick = () => {
@@ -559,7 +817,7 @@ $('#fImport').onchange = async e => {
   try {
     const d = JSON.parse(await f.text());
     const list = Array.isArray(d) ? d : d.plans ? d.plans : [d];
-    list.forEach(x => { const base = newPlan(false); const p = Object.assign(base, x); ['self', 'spouse', 'save', 'living', 'house', 'ins', 'car', 'prot'].forEach(k => p[k] = Object.assign(newPlan(false)[k], x[k] || {})); p.id = uid(); store.plans.push(p); store.current = p.id; });
+    list.forEach(x => { const base = newPlan(false); const p = Object.assign(base, x); ['self', 'spouse', 'save', 'living', 'house', 'ins', 'car', 'prot'].forEach(k => p[k] = Object.assign(newPlan(false)[k], x[k] || {})); migrate(p); p.id = uid(); store.plans.push(p); store.current = p.id; });
     save(); renderAll(); alert(`${list.length}件のプランを読み込みました。`);
   } catch (err) { alert('読み込めませんでした。書き出したファイル（.json）を選んでください。'); }
   e.target.value = '';
