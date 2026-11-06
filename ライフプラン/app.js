@@ -809,11 +809,12 @@ function renderProt(p, rows) {
   const total = Math.max(r.outTotal, r.pubTotal + r.assets + r.cover, 1);
   const pct = v => (Math.max(0, v) / total * 100).toFixed(2) + '%';
   const seg = (v, color, label) => v > 0 ? `<div class="seg" style="width:${pct(v)};background:${color}" title="${label} ${fmt(v)}万円">${label}</div>` : '';
-  const haveCover = Math.min(r.cover, r.need);
+  const have = r.pubTotal + r.assets + r.cover, surplus = have - r.outTotal;
   $('#protBars').innerHTML = `
     <div class="pbar"><span>必要なお金<br><b class="num">${fmt(r.outTotal)} 万円</b></span><div class="track">${seg(r.outTotal, 'var(--s-expense)', '生活費・住居費・教育費など')}</div></div>
-    <div class="pbar"><span>用意できるお金<br><b class="num">${fmt(r.pubTotal + r.assets + haveCover)} 万円</b></span><div class="track">
-      ${seg(r.pubTotal + Math.min(r.assets, r.outTotal - r.pubTotal), 'var(--s-income)', '年金・収入・貯蓄')}${seg(haveCover, 'var(--s-save)', '加入中の保険')}${seg(Math.max(0, r.short), 'var(--critical)', '⚠ 不足')}</div></div>
+    <div class="pbar"><span>用意できるお金<br><b class="num">${fmt(have)} 万円</b></span><div class="track">
+      ${seg(r.pubTotal + r.assets, 'var(--s-income)', '年金・収入・貯蓄')}${seg(r.cover, 'var(--s-save)', '加入中の保険')}${seg(Math.max(0, r.short), 'var(--critical)', '⚠ 不足')}</div></div>
+    <p class="hint" style="margin:2px 0 0">${surplus >= 0 ? `用意できるお金が、必要なお金より <b class="num">${fmt(surplus)}</b> 万円多くなっています。` : `<b class="num">${fmt(-surplus)}</b> 万円足りません（赤の部分）。`}</p>
     <div class="legend" style="margin-top:6px"><span><i class="bar" style="background:var(--s-expense)"></i>必要なお金</span><span><i class="bar" style="background:var(--s-income)"></i>年金・収入・貯蓄</span><span><i class="bar" style="background:var(--s-save)"></i>加入中の保険</span><span><i class="bar" style="background:var(--critical)"></i>不足（追加で必要な保障）</span></div>
     <p class="hint">${r.D}年〜${r.endY}年（${r.years}年間・${spName}${p.spouse.enabled ? `が${num(p.prot.spouseUntil)}歳になるまで` : 'が独立するまで'}）の合計です。物価の上昇は入れていません。</p>`;
 
