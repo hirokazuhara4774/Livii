@@ -25,6 +25,7 @@
     <button data-tab="ops">② 収入・経費</button>
     <button data-tab="tax">③ 税金・売却</button>
     <button data-tab="cf">収支シミュレーション</button>
+    <button data-tab="ms">購入後〜30年後</button>
     <button data-tab="sale">売却・投資判断</button>
   </nav>
 </header>
@@ -104,17 +105,27 @@
       <label class="f">固定資産税・都市計画税<div class="u"><input type="number" data-k="propTax"><span>万円/年</span></div></label>
       <label class="f">火災・地震保険<div class="u"><input type="number" data-k="insurance"><span>万円/年</span></div></label>
       <label class="f">その他（通信・税理士・広告など）<div class="u"><input type="number" data-k="otherExp"><span>万円/年</span></div></label>
-      <label class="f">修繕・原状回復（満室家賃の何%）<div class="u"><input type="number" step="0.5" data-k="repairRate"><span>%</span></div></label>
+      <label class="f">日常の修繕・原状回復（満室家賃の何%）<div class="u"><input type="number" step="0.5" data-k="repairRate"><span>%</span></div></label>
       <label class="f">経費の上昇率<div class="u"><input type="number" step="0.1" data-k="expInflation"><span>%/年</span></div></label>
     </div>
-    <h3>大規模修繕（外壁・屋根・給排水など）</h3>
-    <div class="grid">
-      <label class="f">1回あたりの費用<div class="u"><input type="number" data-k="bigRepair"><span>万円</span></div></label>
-      <label class="f">間隔<div class="u"><input type="number" data-k="bigCycle"><span>年ごと</span></div></label>
-      <label class="f">最初に行う年<div class="u"><input type="number" data-k="bigFirst"><span>年目</span></div></label>
-    </div>
-    <p class="hint">区分マンションは「建物管理・修繕積立など」に管理費・修繕積立金を入れ、大規模修繕は 0 にします。経費の上昇率は、固定費と大規模修繕にかけます。</p>
+    <p class="hint">区分マンションは「建物管理・修繕積立など」に管理費・修繕積立金を入れます。経費の上昇率は、固定費と修繕工事の費用にかけます。「日常の修繕・原状回復」は退去時のクロス張替え・小さな故障など毎年かかる分です。</p>
     <div class="calc" id="opsCalc"></div>
+  </div>
+
+  <div class="card">
+    <h2>修繕計画 <span class="sub">外壁・屋根・給排水・設備の交換など、何年かごとにかかる工事。費用は今の値段で入れます</span></h2>
+    <div class="rows-wrap">
+      <table class="rows">
+        <thead><tr><th>工事の内容</th><th>1回の費用（万円）</th><th>何年ごと</th><th>最初の年（年目）</th><th>30年以内に行う年</th><th></th></tr></thead>
+        <tbody id="repairs"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn sm" id="bAddRep">＋ 工事を追加</button>
+      <button class="btn sm" id="bGuideRep">目安を入れる（構造・戸数・築年数から）</button>
+    </div>
+    <p class="hint">目安は1戸あたりの費用 × 戸数です（区分マンションは室内の設備だけ）。最初の年は、前の持ち主が周期どおりに工事してきた前提で築年数から計算します。購入前に修繕履歴を確認し、実際の見積もりがあればその金額に直してください。</p>
+    <div class="calc" id="repairCalc"></div>
   </div>
 </section>
 
@@ -138,7 +149,7 @@
         <label class="f">売却する年<div class="u"><input type="number" data-k="holdYears"><span>年目の末</span></div></label>
         <label class="f">売却時の利回り（表面）<div class="u"><input type="number" step="0.1" data-k="exitYield"><span>%</span></div></label>
         <label class="f">売却費用（売却価格の何%）<div class="u"><input type="number" step="0.5" data-k="saleCostRate"><span>%</span></div></label>
-        <label class="f">計算する年数<div class="u"><input type="number" data-k="horizon"><span>年</span></div></label>
+        <label class="f">計算する年数（30〜50）<div class="u"><input type="number" data-k="horizon"><span>年</span></div></label>
       </div>
       <p class="hint">売却価格 ＝ 売却時の満室家賃（年額）÷ 売却時の利回り。築年数が進むと買い手の求める利回りは上がるので、今の利回り＋0.5〜1% で見ると安全です。</p>
       <div class="calc" id="saleCalc"></div>
@@ -172,6 +183,25 @@
   <div class="card table-card">
     <h2>収支表 <span class="sub">万円</span></h2>
     <div class="cf-wrap"><table class="cf" id="cfTable"></table></div>
+  </div>
+</section>
+
+<!-- 購入後〜30年後 -->
+<section class="tab result" id="tab-ms">
+  <div class="kpis" id="msKpis"></div>
+  <div class="card">
+    <h2>購入後・10年後・20年後・30年後 <span class="sub">万円・修繕費を含む</span></h2>
+    <div class="cf-wrap full"><table class="cf ms" id="msTable"></table></div>
+    <p class="hint">「その年の収支」はその1年間の金額、「その時点までの合計」は1年目からその年までの合計です。築年数とともに家賃は下がり、経費と修繕費は上がっていきます。</p>
+  </div>
+  <div class="card">
+    <h2>毎年の修繕費 <span class="sub">万円・点線は10年・20年の区切り</span></h2>
+    <div class="legend"><span><i class="bar" style="background:var(--s-income)"></i>日常の修繕・原状回復</span><span><i class="bar" style="background:var(--s-expense)"></i>修繕工事（修繕計画）</span></div>
+    <div class="chart" id="chRepair"></div>
+  </div>
+  <div class="card">
+    <h2>10年ごとの合計 <span class="sub">万円</span></h2>
+    <div class="cf-wrap full"><table class="cf ms" id="periodTable"></table></div>
   </div>
 </section>
 

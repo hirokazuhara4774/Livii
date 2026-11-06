@@ -139,6 +139,7 @@ footer.note{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-3
   table.cf th,table.cf td{padding:2px 4px}
   table.cf thead th{position:static}
   #tab-cf .card.table-card{break-before:page}
+  #tab-ms{break-before:page}
   #tab-sale{break-before:page}
 }
 
@@ -150,3 +151,8 @@ footer.note{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-3
 .kv tr.minus td:last-child{color:var(--ink-2)}
 table.cf tr.sel td{background:var(--accent-soft);font-weight:700}
 .flag.warn{background:var(--critical-soft);color:var(--critical)}
+table.cf.ms th{text-align:right;white-space:nowrap;line-height:1.4}
+table.cf.ms th .hint{font-size:11px}
+table.cf.ms td.l{white-space:nowrap}
+table.cf tr.grp-row td{background:var(--surface-2);color:var(--ink-2);font-weight:700;text-align:left;padding-top:10px}
+.cf-wrap.full{max-height:none}
