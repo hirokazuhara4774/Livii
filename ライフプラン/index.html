@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Livii ライフプラン</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">Livii ライフプラン <small>キャッシュフロー表・必要保障額</small></div>
+    <div class="plan-pick">
+      <select id="planSel" aria-label="お客様を選ぶ"></select>
+      <button class="btn primary" id="bNew">＋ 新規</button>
+      <button class="btn" id="bDup">複製</button>
+      <button class="btn danger" id="bDel">削除</button>
+      <button class="btn" id="bExport">書き出し</button>
+      <label class="btn" style="margin:0">読み込み<input type="file" id="fImport" accept=".json,application/json" hidden></label>
+      <button class="btn" id="bPrint">印刷・PDF</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button data-tab="basic" aria-selected="true">① 家族・収入</button>
+    <button data-tab="expense">② 支出</button>
+    <button data-tab="event">③ ライフイベント</button>
+    <button data-tab="cf">キャッシュフロー</button>
+    <button data-tab="prot">必要保障額</button>
+  </nav>
+</header>
+
+<main>
+<div class="print-head">
+  <h1 id="phTitle"></h1>
+  <div id="phSub" class="hint"></div>
+</div>
+
+<!-- ① 家族・収入 -->
+<section class="tab input on" id="tab-basic">
+  <div class="card">
+    <h2>お客様</h2>
+    <div class="grid">
+      <label class="f">お客様名<input type="text" data-k="name" placeholder="例：山田 様"></label>
+      <label class="f">担当者<input type="text" data-k="staff"></label>
+      <label class="f">作成日<input type="date" data-k="createdOn"></label>
+      <label class="f">計算開始年<div class="u"><input type="number" data-k="startYear"><span>年</span></div></label>
+      <label class="f">本人が何歳まで計算するか<div class="u"><input type="number" data-k="endAge"><span>歳</span></div></label>
+    </div>
+    <label class="f" style="margin-top:10px">メモ（ご相談内容など）<textarea data-k="memo" rows="2"></textarea></label>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>本人</h2>
+      <div class="grid">
+        <label class="f">呼び名<input type="text" data-k="self.name" placeholder="ご主人 など"></label>
+        <label class="f">生まれ年<div class="u"><input type="number" data-k="self.birthYear"><span id="selfAge"></span></div></label>
+        <label class="f">性別<select data-k="self.sex"><option>男</option><option>女</option></select></label>
+        <label class="f">手取り年収<div class="u"><input type="number" data-k="self.net"><span>万円</span></div></label>
+        <label class="f">昇給率<div class="u"><input type="number" step="0.1" data-k="self.raise"><span>%/年</span></div></label>
+        <label class="f">退職年齢<div class="u"><input type="number" data-k="self.retireAge"><span>歳</span></div></label>
+        <label class="f">退職金（手取り）<div class="u"><input type="number" data-k="self.severance"><span>万円</span></div></label>
+        <label class="f">退職後の収入<div class="u"><input type="number" data-k="self.afterNet"><span>万円/年</span></div></label>
+        <label class="f">退職後に働く年齢まで<div class="u"><input type="number" data-k="self.afterUntil"><span>歳</span></div></label>
+        <label class="f">年金（手取り見込み）<div class="u"><input type="number" data-k="self.pension"><span>万円/年</span></div></label>
+        <label class="f">年金の受け取り開始<div class="u"><input type="number" data-k="self.pensionAge"><span>歳</span></div></label>
+        <label class="f">加入している年金<select data-k="self.kosei"><option value="1">厚生年金（会社員・公務員）</option><option value="0">国民年金のみ（自営業など）</option></select></label>
+      </div>
+      <p class="hint">年金額は「ねんきん定期便」の見込額から税・社会保険料を1〜2割ほど引いた額が目安です。</p>
+    </div>
+
+    <div class="card">
+      <h2>配偶者 <label class="chk" style="font-weight:400"><input type="checkbox" data-k="spouse.enabled"> いる</label></h2>
+      <div class="grid" id="spouseFields">
+        <label class="f">呼び名<input type="text" data-k="spouse.name" placeholder="奥様 など"></label>
+        <label class="f">生まれ年<div class="u"><input type="number" data-k="spouse.birthYear"><span id="spouseAge"></span></div></label>
+        <label class="f">性別<select data-k="spouse.sex"><option>女</option><option>男</option></select></label>
+        <label class="f">手取り年収<div class="u"><input type="number" data-k="spouse.net"><span>万円</span></div></label>
+        <label class="f">昇給率<div class="u"><input type="number" step="0.1" data-k="spouse.raise"><span>%/年</span></div></label>
+        <label class="f">退職年齢<div class="u"><input type="number" data-k="spouse.retireAge"><span>歳</span></div></label>
+        <label class="f">退職金（手取り）<div class="u"><input type="number" data-k="spouse.severance"><span>万円</span></div></label>
+        <label class="f">退職後の収入<div class="u"><input type="number" data-k="spouse.afterNet"><span>万円/年</span></div></label>
+        <label class="f">退職後に働く年齢まで<div class="u"><input type="number" data-k="spouse.afterUntil"><span>歳</span></div></label>
+        <label class="f">年金（手取り見込み）<div class="u"><input type="number" data-k="spouse.pension"><span>万円/年</span></div></label>
+        <label class="f">年金の受け取り開始<div class="u"><input type="number" data-k="spouse.pensionAge"><span>歳</span></div></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>お子さま <span class="sub">教育費は文部科学省「子供の学習費調査」などをもとにした目安です</span></h2>
+    <div class="rows-wrap">
+      <table class="rows">
+        <thead><tr><th>呼び名</th><th>生まれ年</th><th>幼稚園</th><th>小学校</th><th>中学校</th><th>高校</th><th>大学など</th><th>自宅外通学</th><th></th></tr></thead>
+        <tbody id="kids"></tbody>
+      </table>
+    </div>
+    <button class="btn sm" id="bAddKid" style="margin-top:8px">＋ お子さまを追加</button>
+    <label class="chk" style="margin-top:12px"><input type="checkbox" data-k="childAllowance"> 児童手当を収入に入れる（0〜2歳 月1.5万円、3〜18歳 月1万円、第3子以降 月3万円）</label>
+  </div>
+
+  <div class="card">
+    <h2>今の貯蓄・その他の収入</h2>
+    <div class="grid">
+      <label class="f">預貯金・投資など<div class="u"><input type="number" data-k="save.current"><span>万円</span></div></label>
+      <label class="f">運用利回り<div class="u"><input type="number" step="0.1" data-k="save.rate"><span>%/年</span></div></label>
+      <label class="f">その他の収入（家賃収入など）<div class="u"><input type="number" data-k="otherIncome"><span>万円/年</span></div></label>
+    </div>
+  </div>
+</section>
+
+<!-- ② 支出 -->
+<section class="tab input" id="tab-expense">
+  <div class="card">
+    <h2>生活費</h2>
+    <div class="grid">
+      <label class="f">基本生活費（住居・教育・保険を除く）<div class="u"><input type="number" data-k="living.current"><span>万円/年</span></div></label>
+      <label class="f">本人が退職した後の生活費<div class="u"><input type="number" data-k="living.retired"><span>万円/年</span></div></label>
+      <label class="f">その他の支出（趣味・交際など）<div class="u"><input type="number" data-k="living.other"><span>万円/年</span></div></label>
+      <label class="f">物価上昇率<div class="u"><input type="number" step="0.1" data-k="living.inflation"><span>%/年</span></div></label>
+    </div>
+    <p class="hint">物価上昇率は、生活費・その他の支出・車の費用にかけます。月の生活費 × 12 で年額になります（例：月25万円 → 300万円）。</p>
+  </div>
+
+  <div class="card">
+    <h2>住まい</h2>
+    <div class="grid">
+      <label class="f">今の住まい<select data-k="house.type"><option>賃貸</option><option>持家</option></select></label>
+      <label class="f" data-show="rent">家賃・駐車場代<div class="u"><input type="number" step="0.1" data-k="house.rent"><span>万円/月</span></div></label>
+      <label class="f" data-show="own">住宅ローン返済<div class="u"><input type="number" step="0.1" data-k="house.loanMonthly"><span>万円/月</span></div></label>
+      <label class="f" data-show="own">ローン完済の年<div class="u"><input type="number" data-k="house.loanEnd"><span>年</span></div></label>
+      <label class="f" data-show="own">固定資産税・修繕など<div class="u"><input type="number" data-k="house.upkeep"><span>万円/年</span></div></label>
+    </div>
+    <div data-show="rent">
+      <h3><label class="chk"><input type="checkbox" data-k="house.buy"> 住宅の購入を予定している</label></h3>
+      <div class="grid" id="buyFields">
+        <label class="f">購入する年<div class="u"><input type="number" data-k="house.buyYear"><span>年</span></div></label>
+        <label class="f">物件価格<div class="u"><input type="number" data-k="house.price"><span>万円</span></div></label>
+        <label class="f">頭金<div class="u"><input type="number" data-k="house.down"><span>万円</span></div></label>
+        <label class="f">諸費用（物件価格の何%）<div class="u"><input type="number" step="0.5" data-k="house.costRate"><span>%</span></div></label>
+        <label class="f">ローン金利<div class="u"><input type="number" step="0.05" data-k="house.rate"><span>%</span></div></label>
+        <label class="f">返済期間<div class="u"><input type="number" data-k="house.years"><span>年</span></div></label>
+        <label class="f">購入後の固定資産税・修繕など<div class="u"><input type="number" data-k="house.upkeepBuy"><span>万円/年</span></div></label>
+      </div>
+      <div class="calc" id="loanCalc"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>保険料</h2>
+      <div class="grid">
+        <label class="f">今の保険料（世帯合計）<div class="u"><input type="number" step="0.1" data-k="ins.monthly"><span>万円/月</span></div></label>
+        <label class="f">払い終わる本人の年齢<div class="u"><input type="number" data-k="ins.untilAge"><span>歳</span></div></label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>車</h2>
+      <div class="grid">
+        <label class="f">買い替え費用<div class="u"><input type="number" data-k="car.price"><span>万円</span></div></label>
+        <label class="f">買い替えの間隔<div class="u"><input type="number" data-k="car.cycle"><span>年ごと</span></div></label>
+        <label class="f">次に買い替える年<div class="u"><input type="number" data-k="car.nextYear"><span>年</span></div></label>
+        <label class="f">維持費（税・車検・ガソリン）<div class="u"><input type="number" data-k="car.upkeep"><span>万円/年</span></div></label>
+        <label class="f">車を手放す本人の年齢<div class="u"><input type="number" data-k="car.lastAge"><span>歳</span></div></label>
+      </div>
+      <p class="hint">車を持たない場合は、買い替え費用と維持費を 0 にします。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ③ ライフイベント -->
+<section class="tab input" id="tab-event">
+  <div class="card">
+    <h2>ライフイベント <span class="sub">旅行・リフォーム・結婚援助・相続など。収入はプラス、支出はマイナスで入れます</span></h2>
+    <div class="rows-wrap">
+      <table class="rows">
+        <thead><tr><th>年</th><th>本人の年齢</th><th>内容</th><th>金額（万円）</th><th>毎年くり返す</th><th>何年続くか</th><th></th></tr></thead>
+        <tbody id="events"></tbody>
+      </table>
+    </div>
+    <button class="btn sm" id="bAddEv" style="margin-top:8px">＋ イベントを追加</button>
+    <p class="hint">例：「2032年　リフォーム　-300」「2040年　親からの相続　+500」「2045年から10年　介護費用　-60（毎年）」</p>
+  </div>
+</section>
+
+<!-- キャッシュフロー -->
+<section class="tab result" id="tab-cf">
+  <div class="kpis" id="kpis"></div>
+  <div class="card">
+    <h2>貯蓄残高の推移 <span class="sub">万円・各年末</span></h2>
+    <div class="chart" id="chSave"></div>
+  </div>
+  <div class="card">
+    <h2>年間の収入と支出 <span class="sub">万円</span></h2>
+    <div class="legend"><span><i style="background:var(--s-income)"></i>収入</span><span><i style="background:var(--s-expense)"></i>支出</span></div>
+    <div class="chart" id="chFlow"></div>
+  </div>
+  <div class="card table-card">
+    <h2>キャッシュフロー表 <span class="sub">万円</span></h2>
+    <div class="cf-wrap"><table class="cf" id="cfTable"></table></div>
+  </div>
+</section>
+
+<!-- 必要保障額 -->
+<section class="tab result" id="tab-prot">
+  <div class="card no-print">
+    <h2>条件 <span class="sub">本人に万一のことがあった場合に、ご家族に必要なお金を計算します</span></h2>
+    <div class="grid">
+      <label class="f">万一の時の本人の年齢<div class="u"><input type="number" data-k="prot.age"><span>歳</span></div></label>
+      <label class="f">末子独立までの生活費（今の何%）<div class="u"><input type="number" data-k="prot.rate1"><span>%</span></div></label>
+      <label class="f">末子独立後の生活費（今の何%）<div class="u"><input type="number" data-k="prot.rate2"><span>%</span></div></label>
+      <label class="f">配偶者が何歳まで計算するか<div class="u"><input type="number" data-k="prot.spouseUntil"><span>歳</span></div></label>
+      <label class="f">お葬式・整理資金<div class="u"><input type="number" data-k="prot.funeral"><span>万円</span></div></label>
+      <label class="f">加入中の死亡保険金<div class="u"><input type="number" data-k="prot.cover"><span>万円</span></div></label>
+      <label class="f">死亡退職金・弔慰金<div class="u"><input type="number" data-k="prot.deathSeverance"><span>万円</span></div></label>
+      <label class="f">遺族厚生年金<div class="u"><input type="number" data-k="prot.koseiOverride" placeholder="自動"><span>万円/年</span></div></label>
+    </div>
+    <label class="chk" style="margin-top:10px"><input type="checkbox" data-k="prot.dansin"> 住宅ローンは団体信用生命保険で完済される</label>
+    <p class="hint">遺族厚生年金は空欄なら、本人の手取り年収から概算します（加入25年とみなす最低保障）。正確な額はねんきん定期便・年金事務所で確認してください。</p>
+  </div>
+  <div class="kpis" id="protKpis"></div>
+  <div class="card">
+    <h2>ご家族に必要なお金と、用意できるお金</h2>
+    <div class="prot-bars" id="protBars"></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>必要なお金（支出）</h2><table class="prot-list" id="protOut"></table></div>
+    <div class="card"><h2>用意できるお金（収入・資産）</h2><table class="prot-list" id="protIn"></table></div>
+  </div>
+</section>
+</main>
+
+<footer class="note">
+  入力したデータは、このパソコン・スマホのブラウザの中にだけ保存されます（インターネットには送られません）。別の端末で使うときは「書き出し」したファイルを「読み込み」してください。<br>
+  計算結果は将来を約束するものではありません。税・社会保険・年金の制度は変わることがあります。
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
