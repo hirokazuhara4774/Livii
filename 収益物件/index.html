@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Livii 収益物件シミュレーション</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">Livii 収益物件シミュレーション <small>利回り・収支・税金・売却</small></div>
+    <div class="plan-pick">
+      <select id="planSel" aria-label="物件を選ぶ"></select>
+      <button class="btn primary" id="bNew">＋ 新規</button>
+      <button class="btn" id="bDup">複製</button>
+      <button class="btn danger" id="bDel">削除</button>
+      <button class="btn" id="bExport">書き出し</button>
+      <label class="btn" style="margin:0">読み込み<input type="file" id="fImport" accept=".json,application/json" hidden></label>
+      <button class="btn" id="bPrint">印刷・PDF</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button data-tab="prop" aria-selected="true">① 物件・融資</button>
+    <button data-tab="ops">② 収入・経費</button>
+    <button data-tab="tax">③ 税金・売却</button>
+    <button data-tab="cf">収支シミュレーション</button>
+    <button data-tab="sale">売却・投資判断</button>
+  </nav>
+</header>
+
+<main>
+<div class="print-head">
+  <h1 id="phTitle"></h1>
+  <div id="phSub" class="hint"></div>
+</div>
+
+<!-- ① 物件・融資 -->
+<section class="tab input on" id="tab-prop">
+  <div class="card">
+    <h2>物件</h2>
+    <div class="grid">
+      <label class="f">物件名<input type="text" data-k="name" placeholder="例：○○町アパート"></label>
+      <label class="f">お客様名<input type="text" data-k="client" placeholder="例：山田 様"></label>
+      <label class="f">担当者<input type="text" data-k="staff"></label>
+      <label class="f">作成日<input type="date" data-k="createdOn"></label>
+      <label class="f">所在地<input type="text" data-k="address"></label>
+      <label class="f">種別<select data-k="kind"><option>一棟アパート</option><option>一棟マンション</option><option>区分マンション</option><option>戸建</option><option>店舗・事務所</option></select></label>
+      <label class="f">構造<select data-k="structure"></select></label>
+      <label class="f">築年数<div class="u"><input type="number" data-k="age"><span>年</span></div></label>
+      <label class="f">戸数<div class="u"><input type="number" data-k="units"><span>戸</span></div></label>
+      <label class="f">購入する年<div class="u"><input type="number" data-k="startYear"><span>年</span></div></label>
+    </div>
+    <label class="f" style="margin-top:10px">メモ（物件の特徴・ご相談内容など）<textarea data-k="memo" rows="2"></textarea></label>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>価格</h2>
+      <div class="grid">
+        <label class="f">物件価格<div class="u"><input type="number" data-k="price"><span>万円</span></div></label>
+        <label class="f">うち建物の価格<div class="u"><input type="number" data-k="building"><span>万円</span></div></label>
+        <label class="f">諸費用（物件価格の何%）<div class="u"><input type="number" step="0.5" data-k="costRate"><span>%</span></div></label>
+      </div>
+      <p class="hint">建物の価格は売買契約書の内訳（消費税から逆算）や固定資産税評価額の比率で決めます。減価償却の計算に使います。諸費用は仲介手数料・登記費用・不動産取得税・融資手数料などで、7〜8%が目安です。</p>
+      <div class="calc" id="priceCalc"></div>
+    </div>
+    <div class="card">
+      <h2>融資</h2>
+      <div class="grid">
+        <label class="f">自己資金<div class="u"><input type="number" data-k="own"><span>万円</span></div></label>
+        <label class="f">金利<div class="u"><input type="number" step="0.05" data-k="rate"><span>%</span></div></label>
+        <label class="f">返済期間<div class="u"><input type="number" data-k="years"><span>年</span></div></label>
+        <label class="f">返済方法<select data-k="method"><option>元利均等</option><option>元金均等</option></select></label>
+      </div>
+      <h3><label class="chk"><input type="checkbox" data-k="reprice"> 途中で金利が変わる場合も見る</label></h3>
+      <div class="grid" id="repriceFields">
+        <label class="f">何年目から<div class="u"><input type="number" data-k="repriceYear"><span>年目</span></div></label>
+        <label class="f">変わった後の金利<div class="u"><input type="number" step="0.05" data-k="repriceRate"><span>%</span></div></label>
+      </div>
+      <div class="calc" id="loanCalc"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ② 収入・経費 -->
+<section class="tab input" id="tab-ops">
+  <div class="card">
+    <h2>家賃収入</h2>
+    <div class="grid">
+      <label class="f">満室時の家賃（全戸の合計）<div class="u"><input type="number" step="0.1" data-k="rent"><span>万円/月</span></div></label>
+      <label class="f">その他の収入（駐車場・自販機など）<div class="u"><input type="number" step="0.1" data-k="otherRent"><span>万円/月</span></div></label>
+      <label class="f">空室率（滞納も含む）<div class="u"><input type="number" step="0.5" data-k="vacancy"><span>%</span></div></label>
+      <label class="f">家賃の下落率<div class="u"><input type="number" step="0.1" data-k="decline"><span>%/年</span></div></label>
+    </div>
+    <p class="hint">空室率は地域・築年数で変わります（目安 5〜15%）。家賃は築年数とともに下がるので、下落率 0.5〜1%/年 で見ておくと安全です。</p>
+  </div>
+
+  <div class="card">
+    <h2>経費（運営費）</h2>
+    <div class="grid">
+      <label class="f">管理委託費（家賃収入の何%）<div class="u"><input type="number" step="0.5" data-k="mgmtRate"><span>%</span></div></label>
+      <label class="f">建物管理・清掃・修繕積立など<div class="u"><input type="number" data-k="bldgMgmt"><span>万円/年</span></div></label>
+      <label class="f">固定資産税・都市計画税<div class="u"><input type="number" data-k="propTax"><span>万円/年</span></div></label>
+      <label class="f">火災・地震保険<div class="u"><input type="number" data-k="insurance"><span>万円/年</span></div></label>
+      <label class="f">その他（通信・税理士・広告など）<div class="u"><input type="number" data-k="otherExp"><span>万円/年</span></div></label>
+      <label class="f">修繕・原状回復（満室家賃の何%）<div class="u"><input type="number" step="0.5" data-k="repairRate"><span>%</span></div></label>
+      <label class="f">経費の上昇率<div class="u"><input type="number" step="0.1" data-k="expInflation"><span>%/年</span></div></label>
+    </div>
+    <h3>大規模修繕（外壁・屋根・給排水など）</h3>
+    <div class="grid">
+      <label class="f">1回あたりの費用<div class="u"><input type="number" data-k="bigRepair"><span>万円</span></div></label>
+      <label class="f">間隔<div class="u"><input type="number" data-k="bigCycle"><span>年ごと</span></div></label>
+      <label class="f">最初に行う年<div class="u"><input type="number" data-k="bigFirst"><span>年目</span></div></label>
+    </div>
+    <p class="hint">区分マンションは「建物管理・修繕積立など」に管理費・修繕積立金を入れ、大規模修繕は 0 にします。経費の上昇率は、固定費と大規模修繕にかけます。</p>
+    <div class="calc" id="opsCalc"></div>
+  </div>
+</section>
+
+<!-- ③ 税金・売却 -->
+<section class="tab input" id="tab-tax">
+  <div class="grid2">
+    <div class="card">
+      <h2>税金</h2>
+      <div class="grid">
+        <label class="f">所有する人<select data-k="owner"><option>個人</option><option>法人</option></select></label>
+        <label class="f">税率（所得税＋住民税 / 法人の実効税率）<div class="u"><input type="number" step="0.5" data-k="taxRate"><span>%</span></div></label>
+      </div>
+      <label class="chk" style="margin-top:10px" data-owner="個人"><input type="checkbox" data-k="offset"> 赤字は給与など他の所得と損益通算する（その分の税金が減る）</label>
+      <p class="hint" data-owner="個人">個人の税率は、給与などを合わせた課税所得で決まります。目安：課税所得 330〜695万円 → 30%、695〜900万円 → 33%、900〜1,800万円 → 43%（住民税10%込み）。</p>
+      <p class="hint" data-owner="法人">法人の赤字は翌年以降10年間くり越して、黒字と相殺します。実効税率は中小法人で 25〜34% が目安です。</p>
+      <div class="calc" id="depCalc"></div>
+    </div>
+    <div class="card">
+      <h2>売却（出口）</h2>
+      <div class="grid">
+        <label class="f">売却する年<div class="u"><input type="number" data-k="holdYears"><span>年目の末</span></div></label>
+        <label class="f">売却時の利回り（表面）<div class="u"><input type="number" step="0.1" data-k="exitYield"><span>%</span></div></label>
+        <label class="f">売却費用（売却価格の何%）<div class="u"><input type="number" step="0.5" data-k="saleCostRate"><span>%</span></div></label>
+        <label class="f">計算する年数<div class="u"><input type="number" data-k="horizon"><span>年</span></div></label>
+      </div>
+      <p class="hint">売却価格 ＝ 売却時の満室家賃（年額）÷ 売却時の利回り。築年数が進むと買い手の求める利回りは上がるので、今の利回り＋0.5〜1% で見ると安全です。</p>
+      <div class="calc" id="saleCalc"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 収支シミュレーション -->
+<section class="tab result" id="tab-cf">
+  <div class="kpis" id="kpis"></div>
+  <div class="grid2">
+    <div class="card">
+      <h2>1年目の収支 <span class="sub">万円</span></h2>
+      <table class="kv" id="year1"></table>
+    </div>
+    <div class="card">
+      <h2>判断の目安</h2>
+      <table class="kv" id="checks"></table>
+    </div>
+  </div>
+  <div class="card">
+    <h2>毎年の手取り（税引後キャッシュフロー） <span class="sub">万円</span></h2>
+    <div class="legend"><span><i class="bar" style="background:var(--s-save)"></i>年間の手取り</span><span><i style="background:var(--s-income)"></i>累計（自己資金を引いた後）</span></div>
+    <div class="chart" id="chCF"></div>
+  </div>
+  <div class="card">
+    <h2>ローン残高と売却価格の見込み <span class="sub">万円・各年末</span></h2>
+    <div class="legend"><span><i style="background:var(--s-income)"></i>売却価格の見込み（売却時の利回りで計算）</span><span><i style="background:var(--s-expense)"></i>ローン残高</span></div>
+    <div class="chart" id="chLoan"></div>
+  </div>
+  <div class="card table-card">
+    <h2>収支表 <span class="sub">万円</span></h2>
+    <div class="cf-wrap"><table class="cf" id="cfTable"></table></div>
+  </div>
+</section>
+
+<!-- 売却・投資判断 -->
+<section class="tab result" id="tab-sale">
+  <div class="kpis" id="saleKpis"></div>
+  <div class="grid2">
+    <div class="card">
+      <h2 id="saleTitle">売却したときの手残り</h2>
+      <table class="kv" id="saleDetail"></table>
+    </div>
+    <div class="card">
+      <h2>投資全体の損益</h2>
+      <table class="kv" id="saleTotal"></table>
+    </div>
+  </div>
+  <div class="card table-card">
+    <h2>何年目に売るといくら残るか <span class="sub">万円・その年の末に売却した場合</span></h2>
+    <div class="cf-wrap"><table class="cf" id="saleTable"></table></div>
+    <p class="hint">「最終的な損益」＝ それまでの手取りの合計 ＋ 売却の手取り − 自己資金。IRR は自己資金に対する年あたりの利回り（税引後）です。</p>
+  </div>
+</section>
+</main>
+
+<footer class="note">
+  入力したデータは、このパソコン・スマホのブラウザの中にだけ保存されます（インターネットには送られません）。別の端末で使うときは「書き出し」したファイルを「読み込み」してください。<br>
+  計算結果は目安で、将来の家賃・空室・金利・売却価格を約束するものではありません。税金は概算です。実際の申告は税理士に確認してください。
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
