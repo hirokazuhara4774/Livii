@@ -17,7 +17,7 @@
 | 2 | 熊本銀行 | https://www.kumamotobank.co.jp/price/loaninterest/index.html | 自動取得はブロックされる。イー・ローン https://www.eloan.co.jp/lender/0587/ で補う |
 | 3 | 信金（熊本第一信用金庫） | https://www.daiichishinkin.co.jp/personal/loan/housing.php ／ car.php | 熊本県内の信金の代表として熊本第一信金を使う |
 | 4 | 西日本シティ銀行 | https://www.ncbank.co.jp/loan/housing/ ／ /loan/mycar/app/ ／ /loan/mycar/ez/ ／ /loan/housing/reform-app/ ／ /loan/housing/reform/ | 住宅ローン10年固定は商品ページから要確認 |
-| 5 | JA（JAバンク熊本） | 未確定 | 熊本県内のJAごとに金利が違う。**どのJAを基準にするか決まったら、ここにURLを書く** |
+| 5 | JA（JAたまな＝玉名農業協同組合） | マイカー: https://ja-netloan.jp/mycar/summary/4300/8926/ ／ リフォーム: https://ja-netloan.jp/reform/summary/4300/8926/ （JAネットローン、JAコード 8926） | 住宅ローンの金利はWeb上に公開されていない（2026-11時点）。見つからなければ「未確認（窓口 0968-72-3333 等で確認）」と書く。保証料は別 |
 | 6 | 九州労金 | https://kyusyu-rokin.com/rate/ （元データ: `/article_source/data/rate/files/loan_YYYYMMDD.csv`、Shift_JIS） | 最大引下げ後の金利を載せる。住宅ローンは保証料別 |
 | 7 | イオン銀行 | https://www.aeonbank.co.jp/interest/housing-loan/ | 自動取得はブロックされる。検索結果の公式ページ情報で補う |
 | 8 | SBI（ドコモSMTBネット銀行／旧 住信SBIネット銀行） | https://www.netbk.co.jp/contents/kinri-homeloan/ | 2026年に住信SBIネット銀行から名前が変わった。リフォーム・カー専用商品はなく多目的ローン |
