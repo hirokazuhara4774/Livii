@@ -57,6 +57,12 @@ function newPlan(sample) {
     living: { current: 280, retired: 230, other: 10, inflation: 1.0, detail: true,
               items: LIV_ITEMS.map(([name, amount]) => ({ name, amount })), yearly: LIV_YEARLY.map(([name, amount]) => ({ name, amount })) },
     tax: { income: '10', compareRate: 3.0 },
+    invest: [
+      { ...newInvest(), name: 'つみたてNISA', kind: 'NISA（つみたて投資枠）', monthly: 30000, rate: 4.0, current: 100,
+        startYear: Y0 - 2, endYear: Y0 + 29, wdStart: Y0 + 30, wdYears: 20 },
+      { ...newInvest(), name: 'iDeCo', kind: 'iDeCo', monthly: 12000, rate: 3.0, current: 30,
+        startYear: Y0 - 2, endYear: Y0 + 29, wdMode: '一括で受け取る', wdStart: Y0 + 30 },
+    ],
     policies: [
       { ...newPolicy(), name: '終身保険（加入中）', status: '加入中', type: '終身保険', monthly: 15000, startYear: Y0 - 5, payYears: 25,
         rate: 0.8, death: 500, action: '持ち続ける', actionYear: Y0 + 30 },
@@ -77,11 +83,15 @@ function newPlan(sample) {
   };
   if (!sample) {
     p.self.name = '本人'; p.spouse.name = '配偶者'; p.kids = []; p.events = [];
-    p.house.buy = false; p.house.borrower = '本人単独'; p.house.share = 100; p.house.downSelf = ''; p.prot.cover = 0; p.policies = []; p.living.detail = false; p.living.current = 300;
+    p.house.buy = false; p.house.borrower = '本人単独'; p.house.share = 100; p.house.downSelf = ''; p.prot.cover = 0; p.policies = []; p.invest = []; p.living.detail = false; p.living.current = 300;
   }
   p.prot.age = Y0 - p.self.birthYear;
   if (p.living.detail) syncLiving(p);
   return p;
+}
+function newInvest() {
+  return { name: '', kind: 'NISA（つみたて投資枠）', owner: '本人', monthly: 30000, bonus: 0, startYear: Y0, endYear: Y0 + 19,
+    rate: 4.0, comp: '月複利', current: 0, wdMode: '取り崩す', wdStart: Y0 + 20, wdYears: 20, inCF: true };
 }
 function newPolicy() {
   return { name: '', status: '新規検討', type: '終身保険', insured: '本人', monthly: 10000, startYear: Y0, payYears: 20,
@@ -96,6 +106,7 @@ function migrate(p) {
   for (const k of Object.keys(d.tax)) if (p.tax[k] == null) p.tax[k] = d.tax[k];
   for (const k of Object.keys(d.house)) if (p.house[k] == null) p.house[k] = d.house[k];
   for (const k of ['monthly', 'bonus']) if (p.save[k] == null) p.save[k] = '';
+  p.invest.forEach(x => { const n = newInvest(); for (const k of Object.keys(n)) if (x[k] == null) x[k] = n[k]; });
   p.policies.forEach(x => { const n = newPolicy(); for (const k of Object.keys(n)) if (x[k] == null) x[k] = n[k]; });
   return p;
 }
@@ -193,6 +204,78 @@ function loanDeduction(p, li, y, salS, salSp) {
   };
 }
 
+/* ===== 積立・投資（複利） ===== */
+const INV_KINDS = {
+  'NISA（つみたて投資枠）': { tax: 'nontax', nisaYear: 120 },
+  'NISA（成長投資枠）': { tax: 'nontax', nisaYear: 240 },
+  'iDeCo': { tax: 'ideco' },
+  '定期・積立預金': { tax: 'yearly' },
+  '財形貯蓄': { tax: 'yearly' },
+  '外貨預金': { tax: 'yearly' },
+  '投資信託・株（課税口座）': { tax: 'gain' },
+  'その他（税金なし）': { tax: 'nontax' },
+};
+const NISA_LIFETIME = 1800;      // NISAの生涯の非課税枠（元本・万円）
+const SEPARATE_TAX = 0.20315;    // 利子・配当・譲渡益の税率
+// 退職所得として一時金を受け取るときの税金（iDeCo）
+function retirementTax(amount, years) {
+  const y = Math.max(1, years);
+  const kojo = y <= 20 ? Math.max(80, 40 * y) : 800 + 70 * (y - 20);
+  const taxable = Math.max(0, amount - kojo) / 2;
+  return incomeTaxOf(taxable) * FUKKO + taxable * RESIDENT_TAX;
+}
+// 1つの積立を、計算開始年から年ごとに計算する（金額は万円）
+function investCalc(p, acc, over = {}) {
+  const st = num(p.startYear) || Y0, end = num(p.self.birthYear) + num(p.endAge);
+  const kind = INV_KINDS[acc.kind] || INV_KINDS['その他（税金なし）'];
+  const comp = over.comp || acc.comp;
+  let r = (over.rate != null ? over.rate : num(acc.rate)) / 100;
+  if (kind.tax === 'yearly') r *= 1 - SEPARATE_TAX; // 利息に毎年税金がかかる
+  const C0 = num(acc.monthly) / 10000, B0 = num(acc.bonus) / 10000;
+  const mode = acc.wdMode, ws = num(acc.wdStart), N = Math.max(1, num(acc.wdYears));
+  const lastY = mode === '受け取らない' ? end : mode === '一括で受け取る' ? ws : ws + N - 1;
+  const owner = acc.owner === '配偶者' && p.spouse.enabled ? p.spouse : p.self;
+  const who = acc.owner === '配偶者' && p.spouse.enabled ? (p.spouse.name || '配偶者') : (p.self.name || '本人');
+  let bal = num(acc.current), P = bal, I = 0, W = 0, contribYears = Math.max(0, st - num(acc.startYear));
+  const rows = [];
+  let before = null; // 受け取り直前の残高
+  for (let y = st; y <= Math.min(lastY, end) && rows.length < 100; y++) {
+    const row = { year: y, age: y - num(owner.birthYear), who, contrib: 0, wd: 0, tax: 0, net: 0, save: 0, notes: [] };
+    const withdrawing = mode !== '受け取らない' && y >= ws;
+    if (!withdrawing) {
+      const on = y >= num(acc.startYear) && y <= num(acc.endYear);
+      const m = on ? C0 : 0, b = on ? B0 : 0, C = m * 12 + b;
+      if (on && C > 0) contribYears++;
+      if (comp === '月複利') {
+        const rm = r / 12;
+        for (let k = 1; k <= 12; k++) { bal = bal * (1 + rm) + m + (k === 6 || k === 12 ? b / 2 : 0); }
+      } else if (comp === '年複利') {
+        bal = bal * (1 + r) + C * (1 + r * 5.5 / 12);
+      } else { // 単利：元本にだけ利息がつく
+        I += P * r + C * r * 5.5 / 12; bal = P + C + I;
+      }
+      P += C; row.contrib = C;
+      if (kind.tax === 'ideco') row.save = C * taxRate(p);
+    } else {
+      if (y === ws) { before = { bal, P, year: y - 1 }; W = mode === '一括で受け取る' ? bal : (r ? bal * r / ((1 - Math.pow(1 + r, -N)) * (1 + r)) : bal / N); }
+      const wd = Math.min(W, bal);
+      const pPart = bal > 0 ? wd * Math.min(1, P / bal) : 0;
+      row.wd = wd;
+      if (kind.tax === 'gain') row.tax = Math.max(0, wd - pPart) * SEPARATE_TAX;
+      if (kind.tax === 'ideco' && mode === '一括で受け取る') row.tax = retirementTax(wd, contribYears);
+      row.net = wd - row.tax;
+      P -= pPart; bal = (bal - wd) * (1 + r); I = Math.max(0, bal - P);
+      if (bal < 0.01) bal = 0;
+      if (y === ws) row.notes.push(`${acc.name || acc.kind} ${mode === '一括で受け取る' ? '受取' : '取り崩し開始'}`);
+    }
+    row.P = P; row.bal = bal;
+    rows.push(row);
+  }
+  if (!before) { const l = rows[rows.length - 1] || { bal, P, year: st }; before = { bal: l.bal, P: l.P, year: l.year }; }
+  const sum = k => rows.reduce((t, x) => t + x[k], 0);
+  return { rows, before, kind, wd: sum('wd'), tax: sum('tax'), net: sum('net'), save: sum('save'), contrib: sum('contrib'), W, N, mode, ws, who };
+}
+
 /* ===== 積立保険 ===== */
 const taxRate = p => num(p.tax.income) / 100 * FUKKO + RESIDENT_TAX;
 function parsePoints(str) {
@@ -279,6 +362,7 @@ function simulate(p, opt = {}) {
   const buying = h.type === '賃貸' && h.buy;
   const buyPay = buying ? pmtYear(Math.max(0, num(h.price) - num(h.down)), num(h.rate), num(h.years)) : 0;
   const li = loanInfo(p);
+  const ivs = p.invest.filter(a => a.inCF).map(a => investCalc(p, a));
   let s = num(p.save.current);
   const pcs = p.policies.map((pol, i) => ({ pol, i }))
     .filter(({ pol, i }) => i === opt.include || (pol.inCF && i !== opt.exclude))
@@ -307,6 +391,12 @@ function simulate(p, opt = {}) {
     const dd = loanDeduction(p, li, y, a.salary, b.salary);
     r.loanDed = dd.self + dd.spouse;
     if (r.loanDed && y === li.dedStart) notes.push('住宅ローン控除開始');
+    r.invIn = 0; r.invOut = 0; r.invBal = 0; r.idecoSave = 0;
+    for (const c of ivs) {
+      const x = c.rows.find(q => q.year === y); if (!x) continue;
+      r.invIn += x.contrib; r.invOut += x.net; r.invBal += x.bal; r.idecoSave += x.save; notes.push(...x.notes);
+    }
+    r.taxCut = r.loanDed + r.idecoSave;
     r.polIn = 0; r.polPrem = 0;
     for (const { pol, c } of pcs) {
       const row = c.rows.find(x => x.year === y);
@@ -351,11 +441,13 @@ function simulate(p, opt = {}) {
       }
     }
 
-    r.incTotal = r.incSelf + r.incSpouse + r.pension + r.severance + r.allowance + r.loanDed + r.otherInc + r.polIn;
-    r.expTotal = r.living + r.housing + r.edu + r.ins + r.polPrem + r.car + r.other;
+    r.incTotal = r.incSelf + r.incSpouse + r.pension + r.severance + r.allowance + r.taxCut + r.otherInc + r.polIn + r.invOut;
+    r.expTotal = r.living + r.housing + r.edu + r.ins + r.polPrem + r.invIn + r.car + r.other;
     r.balance = r.incTotal - r.expTotal;
     s = s + (s > 0 ? s * num(p.save.rate) / 100 : 0) + r.balance;
     r.savings = s;
+    r.assets = s + r.invBal;
+    r.saveTotal = r.balance + r.invIn; // 預貯金の増加 ＋ 積立
     r.notes = notes;
     rows.push(r);
   }
@@ -607,6 +699,77 @@ function updateLoanBox(p) {
   $('#jointCalc').innerHTML = lines.join('<br>');
 }
 
+function renderInvests() {
+  const p = plan();
+  const opt = (k, list, v) => `<select data-k="${k}">${list.map(o => `<option${o === v ? ' selected' : ''}>${o}</option>`).join('')}</select>`;
+  $('#invests').innerHTML = p.invest.map((a, i) => { const k = `invest.${i}`; return `
+  <div class="card pol inv">
+    <h2><input type="text" data-k="${k}.name" placeholder="名前（例：つみたてNISA）" style="flex:1;min-width:180px;font-weight:700">
+      <button class="btn sm danger" data-del-inv="${i}">削除</button></h2>
+    <div class="grid">
+      <label class="f">種類${opt(k + '.kind', Object.keys(INV_KINDS), a.kind)}</label>
+      <label class="f">名義${opt(k + '.owner', ['本人', '配偶者'], a.owner)}</label>
+      <label class="f">今の残高<div class="u"><input type="number" data-k="${k}.current"><span>万円</span></div></label>
+      <label class="f">毎月の積立額<div class="u"><input type="number" step="1000" data-k="${k}.monthly"><span>円/月</span></div></label>
+      <label class="f">ボーナス時の積立<div class="u"><input type="number" step="10000" data-k="${k}.bonus"><span>円/年</span></div></label>
+      <label class="f">積立を始めた年（始める年）<div class="u"><input type="number" data-k="${k}.startYear"><span>年</span></div></label>
+      <label class="f">積立を続ける最後の年<div class="u"><input type="number" data-k="${k}.endYear"><span data-inv-endage="${i}"></span></div></label>
+      <label class="f">想定利回り<div class="u"><input type="number" step="0.1" data-k="${k}.rate"><span>%/年</span></div></label>
+      <label class="f">計算のしかた${opt(k + '.comp', ['月複利', '年複利', '単利'], a.comp)}</label>
+      <label class="f">受け取り方${opt(k + '.wdMode', ['取り崩す', '一括で受け取る', '受け取らない'], a.wdMode)}</label>
+      <label class="f" data-inv-ws="${i}"><span data-inv-wslabel="${i}">取り崩しを始める年</span><div class="u"><input type="number" data-k="${k}.wdStart"><span data-inv-wsage="${i}"></span></div></label>
+      <label class="f" data-inv-wy="${i}">取り崩す年数<div class="u"><input type="number" data-k="${k}.wdYears"><span>年</span></div></label>
+    </div>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" data-k="${k}.inCF"> キャッシュフロー表に入れる（積立額は支出、受取は収入、残高は金融資産に入ります）</label>
+    <div id="invRes-${i}" style="margin-top:14px"></div>
+  </div>`; }).join('') || '<div class="card hint">積立・投資はまだありません。「＋ 積立・投資を追加」から入力してください。</div>';
+  bindValues($('#invests'));
+}
+
+function renderInvestResults(p) {
+  let nisaP = 0, monthTotal = 0, saveTotal = 0;
+  p.invest.forEach((a, i) => {
+    const box = document.getElementById('invRes-' + i); if (!box) return;
+    const c = investCalc(p, a), b = c.before;
+    const simple = investCalc(p, a, { comp: '単利' }).before.bal, zero = investCalc(p, a, { rate: 0 }).before.bal;
+    const gain = b.bal - b.P, yearC = (num(a.monthly) * 12 + num(a.bonus)) / 10000;
+    if (c.kind.nisaYear) nisaP += b.P;
+    if (a.inCF && num(a.startYear) <= Y0 && num(a.endYear) >= Y0) monthTotal += yearC / 12;
+    saveTotal += c.save;
+    let k = kpi('積立元本', `${fmt(b.P)}<small>万円</small>`, `${b.year}年末まで（今の残高を含む）`);
+    k += kpi(c.mode === '受け取らない' ? `${b.year}年末の残高` : `受取前（${b.year}年末）の残高`, `${fmt(b.bal)}<small>万円</small>`, `運用益 ${gain >= 0 ? '+' : ''}${fmt(gain)}万円（元本の ${b.P ? (b.bal / b.P * 100).toFixed(0) : 0}%）`);
+    if (a.comp !== '単利') k += kpi('複利の効果', `+${fmt(b.bal - simple)}<small>万円</small>`, `単利なら ${fmt(simple)}万円・利息なし（${num(a.rate)}%→0%）なら ${fmt(zero)}万円`);
+    if (c.mode === '一括で受け取る') k += kpi(`${c.ws}年に一括で受け取る手取り`, `${fmt(c.net)}<small>万円</small>`, `税金 ${fmt(c.tax)}万円${c.kind.tax === 'ideco' ? '（退職所得）' : c.kind.tax === 'nontax' ? '（非課税）' : ''}`);
+    if (c.mode === '取り崩す') {
+      const firstNet = (c.rows.find(x => x.wd > 0) || { net: 0 }).net;
+      k += kpi('取り崩し（手取り）', `${(firstNet / 12).toFixed(1)}<small>万円/月</small>`, `年 ${fmt(firstNet)}万円 × ${c.N}年（${c.ws}年〜）・税金合計 ${fmt(c.tax)}万円${c.kind.tax === 'ideco' ? '・年金受取の税金は公的年金と合算になるため入れていません' : ''}`);
+    }
+    if (c.kind.tax === 'ideco') k += kpi('掛金による節税', `${fmt(c.save)}<small>万円</small>`, `年 ${(yearC * taxRate(p)).toFixed(1)}万円（所得税${num(p.tax.income)}%＋住民税10%）`);
+    if (c.kind.nisaYear && yearC > c.kind.nisaYear) k += kpi('NISAの年間枠', `${fmt(yearC)}<small>万円/年</small>`, `<span class="flag bad">⚠ ${a.kind}の上限 ${c.kind.nisaYear}万円/年を超えています</span>`, true);
+    const tbl = `<table class="cf"><thead><tr><th class="l">年</th><th>${esc(c.who)}の年齢</th><th>積立額</th><th>元本</th><th>残高</th><th>取り崩し・受取</th><th>税金</th><th>手取り</th>${c.kind.tax === 'ideco' ? '<th>節税</th>' : ''}</tr></thead><tbody>` +
+      c.rows.map(x => `<tr${x.year === b.year ? ' class="ret"' : ''}><td class="l">${x.year}</td><td>${x.age}</td><td>${x.contrib ? fmt(x.contrib) : ''}</td><td>${fmt(x.P)}</td><td class="tot">${fmt(x.bal)}</td><td>${x.wd ? fmt(x.wd) : ''}</td><td>${x.tax ? fmt(x.tax) : ''}</td><td>${x.net ? fmt(x.net) : ''}</td>${c.kind.tax === 'ideco' ? `<td>${x.save ? x.save.toFixed(1) : ''}</td>` : ''}</tr>`).join('') + '</tbody></table>';
+    // グラフ用：単利の残高を同じ年に並べる
+    const sRows = investCalc(p, a, { comp: '単利' }).rows;
+    const rows = c.rows.map((x, j) => ({ ...x, simple: (sRows[j] || {}).bal || 0 }));
+    box.innerHTML = `<div class="kpis">${k}</div>
+      <div class="legend"><span><i style="background:var(--s-income)"></i>残高（${esc(a.comp)}）</span><span><i style="background:var(--s-expense)"></i>元本</span>${a.comp !== '単利' ? '<span><i style="background:var(--s-compare)"></i>単利だった場合</span>' : ''}</div>
+      <div class="chart" id="invChart-${i}"></div>
+      <details style="margin-top:10px"><summary>年ごとの残高の表</summary><div class="cf-wrap" style="margin-top:8px">${tbl}</div></details>`;
+    if (rows.length) drawLines(document.getElementById('invChart-' + i), rows, [
+      { label: '残高', color: 'var(--s-income)', get: r => r.bal, dot: true },
+      { label: '元本', color: 'var(--s-expense)', get: r => r.P, dot: true },
+      ...(a.comp !== '単利' ? [{ label: '単利', color: 'var(--s-compare)', get: r => r.simple, dot: true }] : []),
+    ], [{ label: '手取り', color: 'transparent', get: r => r.net }]);
+  });
+  const el = $('#invSummary');
+  if (!p.invest.length) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = `今年の積立：毎月 <b class="num">${monthTotal.toFixed(1)}</b> 万円（キャッシュフロー表に入れたもの）`
+    + `／ NISAの生涯枠：元本 <b class="num">${fmt(nisaP)}</b> 万円 / ${fmt(NISA_LIFETIME)} 万円`
+    + (nisaP > NISA_LIFETIME ? ` <span class="flag bad">⚠ 生涯の非課税枠 ${fmt(NISA_LIFETIME)}万円を超えています</span>` : '')
+    + (saveTotal ? `／ iDeCoの節税合計 <b class="num">${fmt(saveTotal)}</b> 万円` : '');
+}
+
 function renderPlanSelect() {
   $('#planSel').innerHTML = store.plans.map(p =>
     `<option value="${p.id}"${p.id === store.current ? ' selected' : ''}>${esc(p.name || '名前なし')}（${esc(p.createdOn || '')}）</option>`).join('');
@@ -642,6 +805,15 @@ function updateDerived() {
     document.querySelector(`[data-ann="${i}"]`).style.display = pol.action === '年金で受け取る' ? '' : 'none';
   });
   updateLoanBox(p);
+  p.invest.forEach((a, i) => {
+    const q = n => document.querySelector(`[data-inv-${n}="${i}"]`); if (!q('ws')) return;
+    const o = a.owner === '配偶者' && p.spouse.enabled ? p.spouse : p.self;
+    q('endage').textContent = `${num(a.endYear) - num(o.birthYear)}歳`;
+    q('wsage').textContent = `${num(a.wdStart) - num(o.birthYear)}歳`;
+    q('ws').style.display = a.wdMode === '受け取らない' ? 'none' : '';
+    q('wy').style.display = a.wdMode === '取り崩す' ? '' : 'none';
+    q('wslabel').textContent = a.wdMode === '一括で受け取る' ? '受け取る年' : '取り崩しを始める年';
+  });
   p.events.forEach((e, i) => { const c = document.querySelector(`[data-ev-age="${i}"]`); if (c) c.textContent = `${num(e.year) - num(p.self.birthYear)}歳`; });
 }
 
@@ -707,18 +879,22 @@ function hover(el, rows, f, lines) {
 
 function drawSavings(rows) {
   const el = $('#chSave');
-  const vals = rows.map(r => r.savings);
+  const vals = rows.flatMap(r => [r.savings, Math.max(0, r.savings) + r.invBal]);
   const sc = niceScale(Math.min(0, ...vals), Math.max(0, ...vals));
   const f = chartFrame(rows, sc.lo, sc.hi);
   const bw = Math.max(1, f.step - 2);
   let bars = '';
   rows.forEach((r, i) => {
-    const d = roundedBar(f.x(i) + 1, f.y(0), f.y(r.savings), bw, 4);
-    bars += `<path d="${d}" fill="${r.savings < 0 ? 'var(--critical)' : 'var(--s-save)'}"/>`;
+    const cash = r.savings, base = Math.max(0, cash);
+    if (r.invBal > 0.5) { // 運用残高は預貯金の上に積む（間に2pxのすき間）
+      bars += `<path d="${roundedBar(f.x(i) + 1, f.y(base) - (base > 0 ? 2 : 0), f.y(base + r.invBal), bw, 4)}" fill="var(--s-income)"/>`;
+      if (cash > 0) bars += `<rect x="${f.x(i) + 1}" y="${f.y(cash)}" width="${bw}" height="${Math.max(0, f.y(0) - f.y(cash))}" fill="var(--s-save)"/>`;
+    } else if (cash > 0) bars += `<path d="${roundedBar(f.x(i) + 1, f.y(0), f.y(cash), bw, 4)}" fill="var(--s-save)"/>`;
+    if (cash < 0) bars += `<path d="${roundedBar(f.x(i) + 1, f.y(0), f.y(cash), bw, 4)}" fill="var(--critical)"/>`;
   });
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="貯蓄残高の推移">${axes(rows, sc, f)}${bars}
     <line class="cross" y1="${PT}" y2="${H - PB}" stroke="var(--ink-3)" stroke-width="1" style="display:none"/><g class="dots"></g></svg><div class="tip"></div>`;
-  hover(el, rows, f, [{ label: '貯蓄残高', color: 'var(--s-save)', get: r => r.savings }]);
+  hover(el, rows, f, [{ label: '預貯金', color: 'var(--s-save)', get: r => r.savings }, { label: '運用', color: 'var(--s-income)', get: r => r.invBal }, { label: '合計', color: 'transparent', get: r => r.assets }]);
 }
 
 function drawFlow(rows) {
@@ -751,7 +927,7 @@ function actualSaving(p) {
 }
 function renderSavingCheck(p, rows) {
   const el = $('#saveCalc'); if (!el || !rows.length) return;
-  const act = actualSaving(p), calc = rows[0].balance;
+  const act = actualSaving(p), calc = rows[0].saveTotal;
   if (act == null) { el.innerHTML = `計算上の今年の貯蓄：年 <b class="num">${fmt(calc)}</b> 万円（月あたり <b class="num">${(calc / 12).toFixed(1)}</b> 万円）。実際の貯蓄額を入れると、差を確認できます。`; return; }
   const gap = calc - act;
   el.innerHTML = `実際の貯蓄：年 <b class="num">${fmt(act)}</b> 万円（月あたり <b class="num">${(act / 12).toFixed(1)}</b> 万円）／ 計算上の今年の貯蓄：年 <b class="num">${fmt(calc)}</b> 万円（月あたり <b class="num">${(calc / 12).toFixed(1)}</b> 万円）<br>`
@@ -761,38 +937,38 @@ function renderSavingCheck(p, rows) {
 }
 function renderCF(p, rows) {
   if (!rows.length) { $('#kpis').innerHTML = ''; $('#cfTable').innerHTML = ''; return; }
-  const min = rows.reduce((m, r) => r.savings < m.savings ? r : m, rows[0]);
+  const min = rows.reduce((m, r) => r.assets < m.assets ? r : m, rows[0]);
   const neg = rows.find(r => r.savings < 0);
   const ret = rows.find(r => r.age === num(p.self.retireAge));
   const last = rows[rows.length - 1];
   const first = rows[0], act = actualSaving(p);
   $('#kpis').innerHTML =
-    kpi(`今年（${first.year}年）の毎月の貯蓄`, `${(first.balance / 12).toFixed(1)}<small>万円/月</small>`,
-      `年間収支 ${fmt(first.balance)}万円 ÷ 12${act != null ? `・実際の貯蓄 ${(act / 12).toFixed(1)}万円/月` : ''}`, first.balance < 0) +
-    kpi('貯蓄が底をつく年', neg ? `${neg.year}年<small>本人${neg.age}歳</small>` : 'なし',
-      neg ? '<span class="flag bad">⚠ 見直しが必要です</span>' : `<span class="flag ok">✓ ${last.age}歳まで貯蓄が残ります</span>`, !!neg) +
-    kpi('貯蓄がいちばん少ない年', `${fmt(min.savings)}<small>万円</small>`, `${min.year}年（本人${min.age}歳）`, min.savings < 0) +
-    kpi('本人の退職時の貯蓄', ret ? `${fmt(ret.savings)}<small>万円</small>` : '—', ret ? `${ret.year}年（${ret.age}歳）退職金を含む` : '', ret && ret.savings < 0) +
-    kpi(`${last.age}歳時点の貯蓄`, `${fmt(last.savings)}<small>万円</small>`, `${last.year}年`, last.savings < 0);
+    kpi(`今年（${first.year}年）の毎月の貯蓄`, `${(first.saveTotal / 12).toFixed(1)}<small>万円/月</small>`,
+      `預貯金 ${(first.balance / 12).toFixed(1)}・積立 ${(first.invIn / 12).toFixed(1)}万円/月${act != null ? `（実際の貯蓄 ${(act / 12).toFixed(1)}万円/月）` : ''}`, first.saveTotal < 0) +
+    kpi('預貯金が底をつく年', neg ? `${neg.year}年<small>本人${neg.age}歳</small>` : 'なし',
+      neg ? (neg.invBal > 0 ? '<span class="flag bad">⚠ 運用中のお金の取り崩しを検討</span>' : '<span class="flag bad">⚠ 見直しが必要です</span>') : `<span class="flag ok">✓ ${last.age}歳まで残ります</span>`, !!neg) +
+    kpi('金融資産がいちばん少ない年', `${fmt(min.assets)}<small>万円</small>`, `${min.year}年（本人${min.age}歳）預貯金＋運用`, min.assets < 0) +
+    kpi('本人の退職時の金融資産', ret ? `${fmt(ret.assets)}<small>万円</small>` : '—', ret ? `${ret.year}年（${ret.age}歳）退職金を含む` : '', ret && ret.assets < 0) +
+    kpi(`${last.age}歳時点の金融資産`, `${fmt(last.assets)}<small>万円</small>`, `${last.year}年・うち運用 ${fmt(last.invBal)}万円`, last.assets < 0);
 
   drawSavings(rows); drawFlow(rows);
 
   const kids = p.kids.map(k => esc(k.name || '子'));
   const sp = p.spouse.enabled;
-  const inc = [['incSelf', '本人給与'], ...(sp ? [['incSpouse', '配偶者給与']] : []), ['pension', '年金'], ['severance', '退職金'], ['allowance', '児童手当'], ['loanDed', 'ローン控除'], ['polIn', '保険の受取'], ['otherInc', 'その他']];
-  const exp = [['living', '生活費'], ['housing', '住居費'], ['edu', '教育費'], ['ins', '保険料'], ['polPrem', '積立保険'], ['car', '車'], ['other', 'その他']];
+  const inc = [['incSelf', '本人給与'], ...(sp ? [['incSpouse', '配偶者給与']] : []), ['pension', '年金'], ['severance', '退職金'], ['allowance', '児童手当'], ['taxCut', '減税（ローン控除・iDeCo）'], ['polIn', '保険の受取'], ['invOut', '積立の受取'], ['otherInc', 'その他']];
+  const exp = [['living', '生活費'], ['housing', '住居費'], ['edu', '教育費'], ['ins', '保険料'], ['polPrem', '積立保険'], ['invIn', '積立・投資'], ['car', '車'], ['other', 'その他']];
   const ages = 2 + (sp ? 1 : 0) + kids.length;
   let html = `<thead><tr class="grp"><th class="sticky l" colspan="1"></th><th colspan="${ages - 1}">年齢</th><th></th>
-    <th colspan="${inc.length + 1}">収入</th><th colspan="${exp.length + 1}">支出</th><th colspan="3"></th></tr>
+    <th colspan="${inc.length + 1}">収入</th><th colspan="${exp.length + 1}">支出</th><th colspan="5"></th></tr>
     <tr class="col"><th class="sticky l">年</th><th>本人</th>${sp ? '<th>配偶者</th>' : ''}${kids.map(k => `<th>${k}</th>`).join('')}<th class="l">できごと</th>
-    ${inc.map(c => `<th>${c[1]}</th>`).join('')}<th>収入計</th>${exp.map(c => `<th>${c[1]}</th>`).join('')}<th>支出計</th><th>年間収支</th><th>月あたりの貯蓄</th><th>貯蓄残高</th></tr></thead><tbody>`;
+    ${inc.map(c => `<th>${c[1]}</th>`).join('')}<th>収入計</th>${exp.map(c => `<th>${c[1]}</th>`).join('')}<th>支出計</th><th>年間収支</th><th>月あたりの貯蓄<br>（積立を含む）</th><th>預貯金残高</th><th>運用残高</th><th>金融資産合計</th></tr></thead><tbody>`;
   const z = v => v ? fmt(v) : '';
   rows.forEach(r => {
     html += `<tr${r.age === num(p.self.retireAge) ? ' class="ret"' : ''}><td class="sticky l">${r.year}</td><td>${r.age}</td>${sp ? `<td>${r.spAge}</td>` : ''}
       ${r.kidAges.map(a => `<td>${a >= 0 && a <= 30 ? a : ''}</td>`).join('')}<td class="ev" title="${esc(r.notes.join('・'))}">${esc(r.notes.join('・'))}</td>
       ${inc.map(c => `<td>${z(r[c[0]])}</td>`).join('')}<td class="tot">${fmt(r.incTotal)}</td>
       ${exp.map(c => `<td>${z(r[c[0]])}</td>`).join('')}<td class="tot">${fmt(r.expTotal)}</td>
-      <td class="${r.balance < 0 ? 'neg' : ''}">${fmt(r.balance)}</td><td class="${r.balance < 0 ? 'neg' : ''}">${(r.balance / 12).toFixed(1)}</td><td class="tot ${r.savings < 0 ? 'neg' : ''}">${fmt(r.savings)}</td></tr>`;
+      <td class="${r.balance < 0 ? 'neg' : ''}">${fmt(r.balance)}</td><td class="${r.saveTotal < 0 ? 'neg' : ''}">${(r.saveTotal / 12).toFixed(1)}</td><td class="${r.savings < 0 ? 'neg' : ''}">${fmt(r.savings)}</td><td>${r.invBal ? fmt(r.invBal) : ''}</td><td class="tot ${r.assets < 0 ? 'neg' : ''}">${fmt(r.assets)}</td></tr>`;
   });
   $('#cfTable').innerHTML = html + '</tbody>';
 }
@@ -843,12 +1019,13 @@ function renderResults() {
   renderSavingCheck(p, rows);
   renderProt(p, rows);
   renderPolicyResults(p, rows);
+  renderInvestResults(p);
   $('#phTitle').textContent = `${p.name || ''} ライフプラン`;
   $('#phSub').textContent = `作成日 ${p.createdOn || ''}${p.staff ? '　担当 ' + p.staff : ''}　（金額は万円）${p.memo ? '　' + p.memo : ''}`;
 }
 
 function renderAll() {
-  renderPlanSelect(); bindValues(); renderKids(); renderEvents(); renderLiving(); renderPolicies(); updateDerived(); renderResults();
+  renderPlanSelect(); bindValues(); renderKids(); renderEvents(); renderLiving(); renderPolicies(); renderInvests(); updateDerived(); renderResults();
 }
 
 /* ===== 操作 ===== */
@@ -862,6 +1039,9 @@ function onEdit(e) {
   const p = plan();
   setPath(p, el.dataset.k, v);
   if (el.dataset.k.startsWith('living.')) syncLiving(p);
+  const mi = el.dataset.k.match(/^invest\.(\d+)\.kind$/);
+  if (mi && v === 'iDeCo') { const a = p.invest[+mi[1]]; const o = a.owner === '配偶者' ? p.spouse : p.self;
+    if (num(a.wdStart) - num(o.birthYear) < 60) { a.wdStart = num(o.birthYear) + 65; a.endYear = a.wdStart - 1; } bindValues(el.closest('.inv')); }
   const m = el.dataset.k.match(/^policies\.(\d+)\.type$/);
   if (m) { // 種類を選んだら、よくある設定にそろえる
     const pol = p.policies[+m[1]];
@@ -889,6 +1069,9 @@ document.addEventListener('click', e => {
   } else if (t.dataset.delLiv != null) {
     const [key, i] = t.dataset.delLiv.split('.'); p.living[key].splice(+i, 1); syncLiving(p);
     renderLiving(); updateDerived(); renderResults(); save();
+  } else if (t.dataset.delInv != null) {
+    if (!confirm('この積立を削除しますか？')) return;
+    p.invest.splice(+t.dataset.delInv, 1); renderInvests(); updateDerived(); renderResults(); save();
   } else if (t.dataset.delPol != null) {
     if (!confirm('この保険を削除しますか？')) return;
     p.policies.splice(+t.dataset.delPol, 1); renderPolicies(); updateDerived(); renderResults(); save();
@@ -912,6 +1095,10 @@ $('#bAddEv').onclick = () => {
 $('#bAddLiv').onclick = () => { plan().living.items.push({ name: '', amount: 0 }); renderLiving(); save(); };
 $('#bAddLivY').onclick = () => { plan().living.yearly.push({ name: '', amount: 0 }); renderLiving(); save(); };
 $('#bRetired').onclick = () => { const p = plan(); p.living.retired = Math.round(num(p.living.current) * 0.8); bindValues(); renderResults(); save(); };
+$('#bAddInv').onclick = () => {
+  const p = plan(), a = newInvest(); a.wdStart = num(p.self.birthYear) + 65; a.endYear = a.wdStart - 1;
+  p.invest.push(a); renderInvests(); updateDerived(); renderResults(); save();
+};
 $('#bAddPol').onclick = () => { plan().policies.push(newPolicy()); renderPolicies(); updateDerived(); renderResults(); save(); };
 $('#planSel').onchange = e => { store.current = e.target.value; save(); renderAll(); };
 $('#bNew').onclick = () => { const p = newPlan(false); store.plans.push(p); store.current = p.id; store.tab = 'basic'; save(); renderAll(); showTab(); };

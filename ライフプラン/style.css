@@ -153,7 +153,7 @@ footer.note{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-3
   table.cf th,table.cf td{padding:2px 4px}
   table.cf thead th{position:static}
   #tab-cf .card.table-card{break-before:page}
-  #tab-prot,#tab-policy{break-before:page}
-  [data-del-pol],details:not([open]){display:none!important}
+  #tab-prot,#tab-policy,#tab-invest{break-before:page}
+  [data-del-pol],[data-del-inv],details:not([open]){display:none!important}
   .card.pol{break-inside:auto}
 }

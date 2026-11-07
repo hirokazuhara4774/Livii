@@ -25,6 +25,7 @@
     <button data-tab="expense">② 支出</button>
     <button data-tab="event">③ ライフイベント</button>
     <button data-tab="policy">④ 積立保険</button>
+    <button data-tab="invest">⑤ 積立・投資</button>
     <button data-tab="cf">キャッシュフロー</button>
     <button data-tab="prot">必要保障額</button>
   </nav>
@@ -242,11 +243,24 @@
   <button class="btn primary no-print" id="bAddPol">＋ 積立保険を追加</button>
 </section>
 
+<!-- ⑤ 積立・投資 -->
+<section class="tab input result" id="tab-invest">
+  <div class="card">
+    <h2>積立・投資 <span class="sub">NISA・iDeCo・積立定期・財形・投資信託など。毎月の積立を複利で計算します</span></h2>
+    <div class="calc" id="invSummary"></div>
+    <p class="hint">複利：増えた利息にも次の利息がつく計算（月複利は年利÷12を毎月、年複利は年に1回）。単利：最初の元本にだけ利息がつく計算。<br>
+    税金：NISAは非課税。定期・積立預金、財形（一般）、外貨預金は利息に毎年20.315%（利回りから差し引いて計算）。課税口座の投資信託・株は取り崩すときに利益の20.315%。iDeCoは掛金が全額所得控除（④の所得税率で節税額を計算）、一時金は退職所得として課税（会社の退職金とは合算していません）。</p>
+  </div>
+  <div id="invests"></div>
+  <button class="btn primary no-print" id="bAddInv">＋ 積立・投資を追加</button>
+</section>
+
 <!-- キャッシュフロー -->
 <section class="tab result" id="tab-cf">
   <div class="kpis" id="kpis"></div>
   <div class="card">
-    <h2>貯蓄残高の推移 <span class="sub">万円・各年末</span></h2>
+    <h2>金融資産の推移 <span class="sub">万円・各年末</span></h2>
+    <div class="legend"><span><i class="bar" style="background:var(--s-save)"></i>預貯金</span><span><i class="bar" style="background:var(--s-income)"></i>積立・投資の残高（⑤）</span><span><i class="bar" style="background:var(--critical)"></i>預貯金のマイナス</span></div>
     <div class="chart" id="chSave"></div>
   </div>
   <div class="card">
